@@ -34,3 +34,11 @@ export const getGenericRecommendation = async (medicineName) => {
   const { data } = await API.post('/ai/recommend', { medicineName });
   return data;
 };
+export const getPharmacyById = async (id) => {
+  try {
+    const res = await fetch(`${API_BASE}/pharmacies/${id}`);
+    return await res.json();
+  } catch {
+    return null;
+  }
+};

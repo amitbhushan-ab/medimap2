@@ -1,64 +1,62 @@
-// Mock data for MediMap — used when MongoDB is available for seeding
-// Also exported for use in mock mode (no DB)
-
+// Mock data for MediMap — Faridabad, Haryana
 const mockPharmacies = [
   {
-    name: "Bhushan Pharma",
-    address: "3/30 , Lajpat Nagar, Delhi 110065",
-    phone: "+91-8750447973",
-    location: { type: "Point", coordinates: [28.577992278719744, 77.2418689868382] },
+    name: "Apollo Pharmacy - Sector 16",
+    address: "Sector 16 Market, Faridabad, Haryana 121002",
+    phone: "+91-129-4567-890",
+    location: { type: "Point", coordinates: [77.3178, 28.4089] },
     hours: "Mon-Sun: 7AM–10PM",
     rating: 4.5,
-    isOpen: true,
-    chain: "MedPlus"
-  },
-  {
-    name: "Apollo Pharmacy - Jasola",
-    address: "Nh - 19, Jasola Apollo, Delhi 110020",
-    phone: "+91-80-2553-1234",
-    location: { type: "Point", coordinates: [28.540774171641395, 77.28297247037369] },
-    hours: "Mon-Sat: 8AM–9PM, Sun: 9AM–6PM",
-    rating: 4.7,
     isOpen: true,
     chain: "Apollo"
   },
   {
-    name: "Netmeds Store - Moolchand",
-    address: "41 Hn, Delhi 110020",
-    phone: "+91-80-4123-5678",
-    location: { type: "Point", coordinates: [28.54596629359953, 77.27581536520235] },
-    hours: "Mon-Sun: 8AM–11PM",
+    name: "MedPlus Pharmacy - NIT Faridabad",
+    address: "NIT Market, Faridabad, Haryana 121001",
+    phone: "+91-129-4123-456",
+    location: { type: "Point", coordinates: [77.3260, 28.3949] },
+    hours: "Mon-Sat: 8AM–9PM, Sun: 9AM–6PM",
     rating: 4.3,
+    isOpen: true,
+    chain: "MedPlus"
+  },
+  {
+    name: "Jan Aushadhi Store - Sector 21",
+    address: "Sector 21C, Faridabad, Haryana 121001",
+    phone: "+91-129-4098-765",
+    location: { type: "Point", coordinates: [77.3050, 28.4200] },
+    hours: "Mon-Sat: 9AM–8PM",
+    rating: 4.2,
+    isOpen: true,
+    chain: "Jan Aushadhi"
+  },
+  {
+    name: "Wellness Pharmacy - Old Faridabad",
+    address: "Old Faridabad Market, Haryana 121002",
+    phone: "+91-129-4321-987",
+    location: { type: "Point", coordinates: [77.3310, 28.4150] },
+    hours: "Mon-Sun: 8AM–10PM",
+    rating: 4.1,
+    isOpen: false,
+    chain: "Independent"
+  },
+  {
+    name: "NetMeds Store - Sector 46",
+    address: "Sector 46, Faridabad, Haryana 121003",
+    phone: "+91-129-4567-111",
+    location: { type: "Point", coordinates: [77.3400, 28.3900] },
+    hours: "Mon-Sun: 8AM–11PM",
+    rating: 4.4,
     isOpen: true,
     chain: "Netmeds"
   },
   {
-    name: "Wellness Forever ",
-    address: "Block C2,Green Park, Delhi 110016",
-    phone: "+91-80-4098-7654",
-    location: { type: "Point", coordinates: [28.55092284120021, 77.2041316670535] },
+    name: "City Medical Store - Ballabhgarh",
+    address: "Ballabhgarh Market, Faridabad, Haryana 121004",
+    phone: "+91-129-4222-333",
+    location: { type: "Point", coordinates: [77.3220, 28.3400] },
     hours: "Mon-Sat: 9AM–9PM",
-    rating: 4.2,
-    isOpen: false,
-    chain: "Wellness Forever"
-  },
-  {
-    name: "Frank Ross Pharmacy",
-    address: "E 48,Ground floor,Hauz Khas, Delhi 110016",
-    phone: "+91-80-2558-3210",
-    location: { type: "Point", coordinates: [28.540774171641395, 77.28297247037369] },
-    hours: "Mon-Sat: 9AM–8PM",
-    rating: 4.4,
-    isOpen: true,
-    chain: "Frank Ross"
-  },
-  {
-    name: "Wellness Pharmacy - Saket",
-    address: "Block J, Saket, Delhi 110017",
-    phone: "+91-80-4567-0011",
-    location: { type: "Point", coordinates: [28.522330609665676, 77.21514658054475] },
-    hours: "Mon-Sun: 8AM–10PM",
-    rating: 4.1,
+    rating: 4.0,
     isOpen: true,
     chain: "Independent"
   }
@@ -75,7 +73,6 @@ const mockMedicines = [
   { name: "Azithromycin 500mg", genericName: "Azithromycin", category: "Antibiotic", description: "Z-Pack antibiotic", manufacturer: "Cipla", dosage: "500mg", requiresPrescription: true }
 ];
 
-// Price ranges per medicine (pharmacyIndex -> price)
 const priceMatrix = {
   "Paracetamol 500mg":   [18, 22, 15, 25, 20, 17],
   "Amoxicillin 250mg":   [85, 92, 78, 105, 88, 80],
@@ -98,8 +95,7 @@ const stockMatrix = {
   "Azithromycin 500mg":  [true, false, true, true, true, true]
 };
 
-// Build mock search results with distance
-function getMockResults(medicineName, userLat = 28.564307526331, userLng = 77.234186551710) {
+function getMockResults(medicineName, userLat = 28.4089, userLng = 77.3178) {
   const medicine = mockMedicines.find(m =>
     m.name.toLowerCase().includes(medicineName.toLowerCase()) ||
     (m.genericName && m.genericName.toLowerCase().includes(medicineName.toLowerCase()))
@@ -126,7 +122,8 @@ function getMockResults(medicineName, userLat = 28.564307526331, userLng = 77.23
   });
 
   const minPrice = Math.min(...results.filter(r => r.inStock).map(r => r.price));
-  return results.map(r => ({ ...r, isCheapest: r.price === minPrice && r.inStock }))
+  return results
+    .map(r => ({ ...r, isCheapest: r.price === minPrice && r.inStock }))
     .sort((a, b) => a.distance - b.distance);
 }
 

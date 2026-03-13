@@ -1,86 +1,68 @@
+// src/components/PharmacyCard.jsx
 import { Link } from 'react-router-dom';
+import { useLang } from '../context/LanguageContext';
 
-export default function PharmacyCard({ result, animationDelay = 0 }) {
-  const { pharmacy, price, inStock, distance, isCheapest, lastUpdated } = result;
+export default function PharmacyCard({ result }) {
+  const { t } = useLang();
+  const { pharmacy, price, inStock, isCheapest, distance, lastUpdated } = result;
 
-  const hoursAgo = lastUpdated
-    ? Math.round((Date.now() - new Date(lastUpdated)) / 3600000)
-    : null;
+  const getTimeAgo = (dateStr) => {
+    if (!dateStr) return t('updatedJustNow');
+    const diff = Math.floor((Date.now() - new Date(dateStr)) / 3600000);
+    if (diff < 1) return t('updatedJustNow');
+    return `${diff}${t('updatedHoursAgo')}`;
+  };
 
   return (
-    <div
-      className={`card p-5 animate-fade-up relative overflow-hidden ${isCheapest ? 'ring-2 ring-[#00C2A8]' : ''}`}
-      style={{ animationDelay: `${animationDelay}ms` }}
-    >
+    <div className={`card p-4 sm:p-5 transition-all hover:shadow-md ${isCheapest ? 'border-[#00C2A8] border-2' : ''}`}>
       {isCheapest && (
-        <div className="absolute top-0 right-0 bg-gradient-to-l from-[#00C2A8] to-teal-400 text-white text-xs font-bold px-3 py-1 rounded-bl-xl">
-          🏆 BEST PRICE
+        <div className="flex items-center gap-1.5 text-[#00C2A8] text-xs font-bold mb-3">
+          <span>🏆</span> {t('bestPrice')}
         </div>
       )}
 
-      <div className="flex items-start justify-between mb-3">
-        <div className="flex items-center gap-3">
-          <div className={`w-11 h-11 rounded-xl flex items-center justify-center font-bold text-lg ${
-            isCheapest
-              ? 'bg-gradient-to-br from-[#00C2A8] to-teal-500 text-white shadow-lg shadow-teal-500/25'
-              : 'bg-blue-50 text-[#2E7DFF]'
-          }`}>
-            {pharmacy.name.charAt(0)}
-          </div>
-          <div>
-            <h3 className="font-semibold text-gray-900 text-sm leading-tight">{pharmacy.name}</h3>
-            <p className="text-xs text-gray-500 mt-0.5 flex items-center gap-1">
-              <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
-              </svg>
-              {distance} km away
-            </p>
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex-1 min-w-0">
+          <h3 className="font-semibold text-gray-900 text-base leading-tight truncate">{pharmacy?.name}</h3>
+          <p className="text-sm text-gray-500 mt-0.5 truncate">{pharmacy?.address}</p>
+
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-2">
+            <span className={`flex items-center gap-1 text-xs font-medium ${inStock ? 'text-emerald-600' : 'text-red-500'}`}>
+              <span className={`w-1.5 h-1.5 rounded-full ${inStock ? 'bg-emerald-500' : 'bg-red-400'}`}></span>
+              {inStock ? t('inStock') : t('outOfStock')}
+            </span>
+            <span className={`text-xs font-medium ${pharmacy?.isOpen ? 'text-blue-600' : 'text-gray-400'}`}>
+              {pharmacy?.isOpen ? t('openNow') : t('closed')}
+            </span>
+            {distance != null && (
+              <span className="text-xs text-gray-400">{distance} {t('awayKm')}</span>
+            )}
+            <span className="text-xs text-gray-400">{getTimeAgo(lastUpdated)}</span>
           </div>
         </div>
 
-        <div className="text-right">
+        <div className="text-right flex-shrink-0">
           <div className={`text-2xl font-bold ${isCheapest ? 'text-[#00C2A8]' : 'text-gray-900'}`}>
             ₹{price}
           </div>
-          <div className="text-xs text-gray-400">per strip</div>
+          <div className="text-xs text-gray-400">{t('perStrip')}</div>
         </div>
       </div>
 
-      <div className="flex items-center gap-2 mb-4">
-        <span className={inStock ? 'badge-green' : 'badge-red'}>
-          <span className={`w-1.5 h-1.5 rounded-full ${inStock ? 'bg-emerald-500' : 'bg-red-500'}`}></span>
-          {inStock ? 'In Stock' : 'Out of Stock'}
-        </span>
-        <span className="badge-blue">
-          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          {pharmacy.isOpen ? 'Open Now' : 'Closed'}
-        </span>
-        {hoursAgo !== null && (
-          <span className="text-xs text-gray-400 ml-auto">
-            Updated {hoursAgo < 1 ? 'just now' : `${hoursAgo}h ago`}
-          </span>
-        )}
-      </div>
-
-      <div className="flex items-center gap-2">
+      <div className="flex gap-2 mt-4 pt-3 border-t border-gray-50">
         <Link
-          to={`/pharmacy/${pharmacy._id}?medicine=${encodeURIComponent(result.medicine?.name || '')}&price=${price}&inStock=${inStock}&distance=${distance}`}
-          className="flex-1 btn-primary text-sm text-center !py-2.5"
+          to={`/pharmacy/${pharmacy?._id}?medicine=${encodeURIComponent(result.medicine?.name || '')}&price=${price}`}
+          className="flex-1 btn-secondary text-center text-sm !py-2"
         >
-          View Details
+          {t('viewDetails')}
         </Link>
         <a
-          href={`https://maps.google.com/?q=${pharmacy.address}`}
+          href={`https://maps.google.com/?q=${encodeURIComponent(pharmacy?.address || '')}`}
           target="_blank"
           rel="noreferrer"
-          className="btn-secondary text-sm !py-2.5 !px-3"
-          title="Get Directions"
+          className="btn-primary text-sm !py-2 !px-4"
         >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
-          </svg>
+          {t('getDirections')}
         </a>
       </div>
     </div>

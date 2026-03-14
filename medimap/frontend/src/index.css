@@ -1,0 +1,112 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* { font-family: 'DM Sans', sans-serif; }
+
+/* ── Light mode variables ── */
+:root {
+  --bg-primary: #f8faff;
+  --bg-card: #ffffff;
+  --bg-input: #ffffff;
+  --border: #e5e7eb;
+  --text-primary: #111827;
+  --text-secondary: #6b7280;
+  --text-muted: #9ca3af;
+  --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-md: 0 4px 6px rgba(0,0,0,0.07), 0 2px 4px rgba(0,0,0,0.05);
+}
+
+/* ── Dark mode variables ── */
+.dark {
+  --bg-primary: #0f1117;
+  --bg-card: #1a1d27;
+  --bg-input: #252836;
+  --border: #2d3148;
+  --text-primary: #f1f5f9;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+  --shadow: 0 1px 3px rgba(0,0,0,0.4), 0 1px 2px rgba(0,0,0,0.3);
+  --shadow-md: 0 4px 6px rgba(0,0,0,0.4), 0 2px 4px rgba(0,0,0,0.3);
+}
+
+body {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+@layer components {
+  .card {
+    @apply rounded-2xl border;
+    background-color: var(--bg-card);
+    border-color: var(--border);
+    box-shadow: var(--shadow);
+    transition: background-color 0.3s ease, border-color 0.3s ease;
+  }
+
+  .input-field {
+    @apply w-full px-4 py-2.5 rounded-xl text-sm outline-none transition-all;
+    background-color: var(--bg-input);
+    border: 1.5px solid var(--border);
+    color: var(--text-primary);
+  }
+  .input-field::placeholder { color: var(--text-muted); }
+  .input-field:focus { border-color: #2E7DFF; box-shadow: 0 0 0 3px rgba(46,125,255,0.12); }
+
+  .btn-primary {
+    @apply inline-flex items-center justify-center px-5 py-2.5 rounded-xl font-semibold text-sm text-white transition-all;
+    background: linear-gradient(135deg, #2E7DFF, #1a6aef);
+    box-shadow: 0 2px 8px rgba(46,125,255,0.3);
+  }
+  .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(46,125,255,0.4); }
+  .btn-primary:active { transform: translateY(0); }
+  .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center px-5 py-2.5 rounded-xl font-semibold text-sm transition-all;
+    border: 1.5px solid var(--border);
+    color: var(--text-primary);
+    background-color: var(--bg-card);
+  }
+  .btn-secondary:hover { border-color: #2E7DFF; color: #2E7DFF; }
+
+  .badge-blue  { @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-700; }
+  .badge-green { @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700; }
+
+  .skeleton {
+    @apply animate-pulse rounded-xl;
+    background-color: var(--border);
+  }
+}
+
+/* ── Dark mode overrides ── */
+.dark .bg-white          { background-color: var(--bg-card) !important; }
+.dark .bg-gray-50        { background-color: #1e2130 !important; }
+.dark .bg-gray-100       { background-color: #252836 !important; }
+.dark .bg-blue-50        { background-color: rgba(46,125,255,0.1) !important; }
+.dark .bg-emerald-50     { background-color: rgba(0,194,168,0.1) !important; }
+.dark .bg-amber-50       { background-color: rgba(245,158,11,0.1) !important; }
+.dark .bg-red-50         { background-color: rgba(239,68,68,0.1) !important; }
+.dark .bg-green-50       { background-color: rgba(34,197,94,0.1) !important; }
+
+.dark .text-gray-900     { color: #f1f5f9 !important; }
+.dark .text-gray-800     { color: #e2e8f0 !important; }
+.dark .text-gray-700     { color: #cbd5e1 !important; }
+.dark .text-gray-600     { color: #94a3b8 !important; }
+.dark .text-gray-500     { color: #64748b !important; }
+.dark .text-gray-400     { color: #475569 !important; }
+
+.dark .border-gray-100   { border-color: #2d3148 !important; }
+.dark .border-gray-200   { border-color: #2d3148 !important; }
+.dark .border-blue-100   { border-color: rgba(46,125,255,0.2) !important; }
+.dark .border-emerald-100{ border-color: rgba(0,194,168,0.2) !important; }
+
+.dark .hover\:bg-gray-50:hover  { background-color: #1e2130 !important; }
+.dark .hover\:bg-gray-100:hover { background-color: #252836 !important; }
+
+/* Leaflet dark mode */
+.dark .leaflet-tile { filter: brightness(0.7) invert(1) contrast(3) hue-rotate(200deg) saturate(0.3) brightness(0.7); }
+.dark .leaflet-container { background: #1a1d27; }

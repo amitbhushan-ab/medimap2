@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const API = axios.create({
-  baseURL: '/api',
+  baseURL: 'https://medimap-backend-production.up.railway.app/api',
   timeout: 10000,
 });
 

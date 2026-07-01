@@ -24,7 +24,7 @@ export default function PharmacyDetailPage() {
 
   useEffect(() => {
     // Try API first, fall back to mock data
-    fetch(`http://localhost:5000/api/pharmacies/${id}`)
+    fetch(`https://medimap-backend-production.up.railway.app/api/pharmacies/${id}`)
       .then(r => r.json())
       .then(data => {
         if (data && data.name) {

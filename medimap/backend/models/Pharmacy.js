@@ -12,7 +12,9 @@ const pharmacySchema = new mongoose.Schema({
   rating: { type: Number, min: 1, max: 5, default: 4.0 },
   isOpen: { type: Boolean, default: true },
   chain: { type: String },
-  image: { type: String }
+  image: { type: String },
+  isPremium: { type: Boolean, default: false },
+  subscriptionTier: { type: String, enum: ['free', 'premium', 'enterprise'], default: 'free' }
 });
 
 pharmacySchema.index({ location: '2dsphere' });

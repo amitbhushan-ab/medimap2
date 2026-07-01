@@ -69,21 +69,16 @@ export default function SignupPage() {
 
       <div className="w-full max-w-md">
         {/* Logo */}
-        <div className="text-center mb-8">
-          <Link to="/" className="inline-flex items-center gap-2.5 mb-4">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-[#2E7DFF] to-[#00C2A8] flex items-center justify-center shadow-lg shadow-blue-500/30">
-              <svg width="20" height="20" fill="none" viewBox="0 0 24 24">
-                <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" fill="white"/>
-                <circle cx="12" cy="9" r="2.5" fill="rgba(255,255,255,0.4)"/>
-              </svg>
-            </div>
+        <div className="text-center mb-6">
+          <Link to="/" className="inline-flex items-center gap-2.5 mb-3">
+            <img src="/logo.png" alt="MediMap" className="h-12 object-contain" />
             <span className="font-bold text-2xl text-gray-900">Medi<span className="text-[#2E7DFF]">Map</span></span>
           </Link>
           <h1 className="text-2xl font-bold text-gray-900">
             {lang === 'hi' ? 'अकाउंट बनाएं' : 'Create your account'}
           </h1>
           <p className="text-gray-500 text-sm mt-1">
-            {lang === 'hi' ? 'MediMap से जुड़ें — बिल्कुल मुफ़्त' : 'Join MediMap — completely free'}
+            {lang === 'hi' ? 'दवाइयों पर पैसे बचाने के लिए हमसे जुड़ें' : 'Join us to start saving on medicines'}
           </p>
         </div>
 

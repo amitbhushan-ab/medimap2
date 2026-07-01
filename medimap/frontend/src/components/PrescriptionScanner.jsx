@@ -2,7 +2,7 @@
 import { useState, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-const API_BASE = 'http://localhost:5000/api';
+const API_BASE = 'https://medimap-backend-production.up.railway.app/api';
 
 // ─── Upload Zone ─────────────────────────────────────────────────────────────
 function UploadZone({ onFileSelect, preview, isDragging, onDrag, onDragLeave, onDrop }) {

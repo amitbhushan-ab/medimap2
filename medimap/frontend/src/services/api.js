@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const API = axios.create({
-  baseURL: 'https://medimap-backend-production.up.railway.app/api',
+  baseURL: 'https://medimap-backend-ygqj.onrender.com/api',
   timeout: 10000,
 });
 
@@ -36,7 +36,7 @@ export const getGenericRecommendation = async (medicineName) => {
 };
 export const getPharmacyById = async (id) => {
   try {
-    const res = await fetch(`${API_BASE}/pharmacies/${id}`);
+    const res = await fetch(`https://medimap-backend-ygqj.onrender.com/api/pharmacies/${id}`);
     return await res.json();
   } catch {
     return null;

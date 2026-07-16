@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 
 const ADMIN_KEY = 'admin123';
-const API = 'https://medimap-backend-production.up.railway.app/api';
+const API = 'https://medimap-backend-ygqj.onrender.com/api';
 
 function apiCall(url, opts = {}) {
   return fetch(`${API}${url}`, {

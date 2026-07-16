@@ -31,7 +31,7 @@ export default function ResultsPage() {
   useEffect(() => {
     if (!query) return;
     setLoading(true); setError('');
-    fetch(`https://medimap-backend-production.up.railway.app/api/medicines/search?q=${encodeURIComponent(query)}&lat=${userLat}&lng=${userLng}`)
+    fetch(`https://medimap-backend-ygqj.onrender.com/api/medicines/search?q=${encodeURIComponent(query)}&lat=${userLat}&lng=${userLng}`)
       .then(r => r.json())
       .then(data => {
         if (data.error) { setError(data.error); setResults([]); }

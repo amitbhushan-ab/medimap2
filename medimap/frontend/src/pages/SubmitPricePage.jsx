@@ -63,7 +63,7 @@ export default function SubmitPricePage() {
     const params = new URLSearchParams({ q: debouncedPharmacySearch, limit: 8 });
     if (userCoords) { params.set('lat', userCoords.lat); params.set('lng', userCoords.lng); }
 
-    fetch(`https://medimap-backend-production.up.railway.app/api/pharmacy-search?${params}`)
+    fetch(`https://medimap-backend-ygqj.onrender.com/api/pharmacy-search?${params}`)
       .then(r => r.json())
       .then(data => setPharmacyResults(data.pharmacies || []))
       .catch(() => setPharmacyResults([]))
@@ -99,7 +99,7 @@ export default function SubmitPricePage() {
     setScanning(true); setError('');
     try {
       const fd = new FormData(); fd.append('prescription', file);
-      const res = await fetch('https://medimap-backend-production.up.railway.app/api/prescription/scan', { method: 'POST', body: fd });
+      const res = await fetch('https://medimap-backend-ygqj.onrender.com/api/prescription/scan', { method: 'POST', body: fd });
       const data = await res.json();
       if (data.error) throw new Error(data.error);
       const meds = data.medicines || [];
@@ -153,7 +153,7 @@ export default function SubmitPricePage() {
 
       if (file) fd.append('billImage', file);
 
-      const res = await fetch('https://medimap-backend-production.up.railway.app/api/requests', { method: 'POST', body: fd });
+      const res = await fetch('https://medimap-backend-ygqj.onrender.com/api/requests', { method: 'POST', body: fd });
       const data = await res.json();
       if (data.error) throw new Error(data.error);
       setSubmitted(true);

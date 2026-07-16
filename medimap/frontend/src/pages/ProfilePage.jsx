@@ -59,7 +59,7 @@ function PointsTab({ userId }) {
   const [toast, setToast] = useState('');
 
   useEffect(() => {
-    fetch(`https://medimap-backend-production.up.railway.app/api/points/${encodeURIComponent(userId)}`)
+    fetch(`https://medimap-backend-ygqj.onrender.com/api/points/${encodeURIComponent(userId)}`)
       .then(r => r.json()).then(d => { setPts(d.points||0); setTransactions(d.transactions||[]); setCoupons(d.coupons||[]); })
       .catch(() => {});
   }, []);
@@ -67,7 +67,7 @@ function PointsTab({ userId }) {
   async function redeem(tier) {
     setRedeeming(tier);
     try {
-      const res = await fetch('https://medimap-backend-production.up.railway.app/api/points/redeem', {
+      const res = await fetch('https://medimap-backend-ygqj.onrender.com/api/points/redeem', {
         method:'POST', headers:{'Content-Type':'application/json'},
         body: JSON.stringify({ userId, tier }),
       });

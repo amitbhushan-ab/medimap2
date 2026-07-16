@@ -33,7 +33,7 @@ export default function LoginPage() {
         ? { email: customerForm.email, password: customerForm.password }
         : { name: customerForm.name, email: customerForm.email, password: customerForm.password };
 
-      const res = await fetch(`https://medimap-backend-production.up.railway.app/api/users${endpoint}`, {
+      const res = await fetch(`https://medimap-backend-ygqj.onrender.com/api/users${endpoint}`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       });
@@ -53,7 +53,7 @@ export default function LoginPage() {
       const body = tab === 'login'
         ? { email: pharmacistForm.email, password: pharmacistForm.password }
         : pharmacistForm;
-      const res = await fetch(`https://medimap-backend-production.up.railway.app/api/pharmacist${endpoint}`, {
+      const res = await fetch(`https://medimap-backend-ygqj.onrender.com/api/pharmacist${endpoint}`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       });

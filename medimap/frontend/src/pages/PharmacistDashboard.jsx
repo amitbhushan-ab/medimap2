@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import StockOCR from '../components/StockOCR';
 
-const API = 'https://medimap-backend-production.up.railway.app/api/pharmacist';
+const API = 'https://medimap-backend-ygqj.onrender.com/api/pharmacist';
 const getToken = () => localStorage.getItem('pharmacist_token');
 const authH = () => ({ 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}` });
 const eForm = { medicineName:'', genericName:'', manufacturer:'', batchNo:'', expiryDate:'', purchasePrice:'', sellingPrice:'', units:'', minStock:'10', category:'', gstRate:'12', supplierId:'', supplierName:'' };
@@ -77,7 +77,7 @@ function MedicineSearch({ value, onChange, inp, c }) {
     setLoading(true);
     const t = setTimeout(async () => {
       try {
-        const res = await fetch(`https://medimap-backend-production.up.railway.app/api/medicines/search?q=${encodeURIComponent(query)}&lat=28.4089&lng=77.3178`);
+        const res = await fetch(`https://medimap-backend-ygqj.onrender.com/api/medicines/search?q=${encodeURIComponent(query)}&lat=28.4089&lng=77.3178`);
         const data = await res.json();
         if (data.medicine) {
           const names = [data.medicine.name,...(data.results||[]).map(r=>r.medicine?.name).filter(Boolean)].filter((v,i,a)=>v&&a.indexOf(v)===i).slice(0,8);
@@ -226,7 +226,7 @@ function NotifPanel({ pharmacistId, theme }) {
 
   async function load() {
     if (!pharmacistId) return;
-    try { const d = await fetch(`https://medimap-backend-production.up.railway.app/api/admin/pharmacist-notifications/${pharmacistId}`).then(r=>r.json()); setNotifs(d.notifications||[]); setUnread(d.unread||0); } catch {}
+    try { const d = await fetch(`https://medimap-backend-ygqj.onrender.com/api/admin/pharmacist-notifications/${pharmacistId}`).then(r=>r.json()); setNotifs(d.notifications||[]); setUnread(d.unread||0); } catch {}
   }
   useEffect(() => { load(); const iv = setInterval(load, 15000); return () => clearInterval(iv); }, [pharmacistId]);
   useEffect(() => { const h = e => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); }; document.addEventListener('mousedown',h); return () => document.removeEventListener('mousedown',h); }, []);
@@ -234,7 +234,7 @@ function NotifPanel({ pharmacistId, theme }) {
   async function respond(nid, resp) {
     setResponding(nid);
     try {
-      const d = await fetch(`https://medimap-backend-production.up.railway.app/api/admin/pharmacist-notifications/${pharmacistId}/${nid}/respond`, { method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ pharmacistId, response:resp, note:notes[nid]||'' }) }).then(r=>r.json());
+      const d = await fetch(`https://medimap-backend-ygqj.onrender.com/api/admin/pharmacist-notifications/${pharmacistId}/${nid}/respond`, { method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ pharmacistId, response:resp, note:notes[nid]||'' }) }).then(r=>r.json());
       if (d.error) throw new Error(d.error);
       load();
     } catch {}
@@ -638,7 +638,7 @@ function BillingTab({ pharmacist, toast, theme }) {
   }
   async function validateCoupon() {
     setCouponErr('');
-    try { const d=await fetch('https://medimap-backend-production.up.railway.app/api/points/validate-coupon',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code:coupon.trim().toUpperCase()})}).then(r=>r.json()); if(d.error){setCouponErr(d.error);return;} setCouponDisc(d.discount); setCouponApplied(true); toast(`🎉 ${d.discount}% coupon applied!`); } catch { setCouponErr('Could not validate'); }
+    try { const d=await fetch('https://medimap-backend-ygqj.onrender.com/api/points/validate-coupon',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code:coupon.trim().toUpperCase()})}).then(r=>r.json()); if(d.error){setCouponErr(d.error);return;} setCouponDisc(d.discount); setCouponApplied(true); toast(`🎉 ${d.discount}% coupon applied!`); } catch { setCouponErr('Could not validate'); }
   }
   const sub = items.reduce((s,i)=>s+i.price*i.quantity,0);
   const coupAmt = couponApplied?(sub*couponDisc)/100:0;
@@ -651,7 +651,7 @@ function BillingTab({ pharmacist, toast, theme }) {
     try {
       const d = await fetch(`${API}/bill`,{method:'POST',headers:authH(),body:JSON.stringify({ customerName:customer.name||'Walk-in', customerPhone:customer.phone, customerEmail:customer.email, customerAddress:customer.address, items, discount:discount+couponDisc, paymentMode:payMode, couponCode:couponApplied?coupon:null })}).then(r=>r.json());
       if(d.error) throw new Error(d.error);
-      if (couponApplied&&coupon) await fetch('https://medimap-backend-production.up.railway.app/api/points/use-coupon',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code:coupon.trim().toUpperCase()})});
+      if (couponApplied&&coupon) await fetch('https://medimap-backend-ygqj.onrender.com/api/points/use-coupon',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code:coupon.trim().toUpperCase()})});
       setBill(d); setBills(p=>[d,...p]); toast('✅ Bill saved to database!');
     } catch(e) { toast(e.message,'error'); }
     setGenerating(false);

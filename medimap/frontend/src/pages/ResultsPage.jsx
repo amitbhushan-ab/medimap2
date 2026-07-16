@@ -38,10 +38,13 @@ export default function ResultsPage() {
         else {
           setMedicine(data.medicine);
           setResults(data.results || []);
-          // Save to search history
-          const history = JSON.parse(localStorage.getItem('medimap_search_history') || '[]');
-          const updated = [{ query, date: new Date().toISOString() }, ...history.filter(h => h.query !== query)].slice(0, 10);
-          localStorage.setItem('medimap_search_history', JSON.stringify(updated));
+          try {
+            const history = JSON.parse(localStorage.getItem('medimap_search_history') || '[]');
+            const updated = [{ query, date: new Date().toISOString() }, ...history.filter(h => h.query !== query)].slice(0, 10);
+            localStorage.setItem('medimap_search_history', JSON.stringify(updated));
+          } catch(e) {
+            localStorage.setItem('medimap_search_history', '[]'); // Reset on corruption
+          }
         }
       })
       .catch(() => setError('Failed to load results. Please try again.'))

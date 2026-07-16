@@ -105,12 +105,9 @@ export default function SearchBar({ large = false, initialValue = '' }) {
 
   const handleSearch = (q = query) => {
     if (!q.trim()) return;
-    if (!coords) {
-      setShowLocationInput(true);
-      return;
-    }
+    const finalCoords = coords || { lat: 28.6139, lng: 77.2090 }; // Default to Delhi if no location
     setShowSuggestions(false);
-    navigate(`/results?q=${encodeURIComponent(q.trim())}&lat=${coords.lat}&lng=${coords.lng}`);
+    navigate(`/results?q=${encodeURIComponent(q.trim())}&lat=${finalCoords.lat}&lng=${finalCoords.lng}`);
   };
 
   return (

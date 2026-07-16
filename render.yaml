@@ -6,3 +6,9 @@ services:
     buildCommand: npm install
     startCommand: npm start
     plan: free
+  - type: web
+    name: medimap-frontend
+    env: static
+    rootDir: medimap/frontend
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist

@@ -39,6 +39,14 @@ async function connectDB() {
   require('./models/Supplier');
   require('./models/RegularCustomer');
   require('./models/MedicineRequirement');
+  require('./models/Pharmacist');
+  require('./models/Medicine');
+  require('./models/Price');
+  require('./models/Stock');
+  require('./models/PriceRequest');
+  require('./models/Notification');
+  require('./models/User');
+
   // One-time seed
   const { seedIfEmpty } = require('./data/seed');
   await seedIfEmpty();

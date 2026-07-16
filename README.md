@@ -9,7 +9,7 @@ MediMap allows users to quickly search for medicines, compare prices across near
 ## 🚀 Live Deployments
 Check out the live versions of our application:
 
-- 🌐 **Web Application:** [https://frontend-eta-liart-16.vercel.app](https://frontend-eta-liart-16.vercel.app)
+- 🌐 **Web Application:** [https://medimap-frontend.onrender.com](https://medimap-frontend.onrender.com)
 - ⚙️ **API Server:** [https://medimap-backend-ygqj.onrender.com](https://medimap-backend-ygqj.onrender.com)
 
 ---

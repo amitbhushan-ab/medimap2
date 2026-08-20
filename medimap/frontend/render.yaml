@@ -5,6 +5,9 @@ services:
     buildCommand: npm install && npm run build
     staticPublishPath: dist
     pullRequestPreviewsEnabled: false
+    envVars:
+      - key: VITE_CONVEX_URL
+        value: https://hidden-pelican-424.convex.cloud
     routes:
       - type: rewrite
         source: /*

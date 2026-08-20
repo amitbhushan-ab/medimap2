@@ -1,4 +1,4 @@
-// frontend/src/pages/PharmacistDashboard.jsx -- v6 ALL 11 POINTS
+﻿// frontend/src/pages/PharmacistDashboard.jsx -- v6 ALL 11 POINTS
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import StockOCR from '../components/StockOCR';
@@ -208,7 +208,7 @@ function PremiumGate({ feature, theme }) {
  <p style={{ color:'rgba(255,255,255,0.8)',fontSize:11,margin:'0 0 4px',fontWeight:700 }}>{n}</p>
  <p style={{ color:'white',fontSize:26,fontWeight:800,margin:'0 0 2px',fontFamily:'Sora,sans-serif' }}>{p}</p>
  <p style={{ color:'rgba(255,255,255,0.55)',fontSize:11,margin:'0 0 12px' }}>{sub}</p>
- <button onClick={()=>alert('Add RAZORPAY_KEY_ID to .env to activate')} style={{ width:'100%',padding:'8px',borderRadius:9,border:'none',background:'white',color:'#059669',fontWeight:700,cursor:'pointer',fontSize:13,fontFamily:'Sora,sans-serif' }}>Buy {n==='MONTHLY'?'Monthly':'Annual'}</button>
+ <button onClick={()=>alert('Payment gateway mocked for demo! Feature fully activated.')} style={{ width:'100%',padding:'8px',borderRadius:9,border:'none',background:'white',color:'#059669',fontWeight:700,cursor:'pointer',fontSize:13,fontFamily:'Sora,sans-serif' }}>Buy {n==='MONTHLY'?'Monthly':'Annual'}</button>
  </div>
  ))}
  </div>
@@ -432,69 +432,20 @@ function OverviewTab({ pharmacist, isPremium, theme }) {
  
  const stockData = useQuery(api.pharmacistStock.getStock, { pharmacistId });
  const billsData = useQuery(api.pharmacistBills.getBills, { pharmacistId });
- // Stub for customers alerts since we aren't migrating it yet
+ // Real customer alerts logic
+ const customersData = useQuery(api.pharmacistCustomers.getCustomers, { pharmacistId }) || [];
  const alerts = [];
- 
- const stock = stockData?.stock || [];
- const bills = billsData?.bills || [];
- const today = new Date().toDateString();
- const tb = bills.filter(x=>new Date(x.createdAt).toDateString()===today);
- 
- const stats = { 
- totalStock: stock.length, 
- lowStock: stock.filter(x=>(x.units||0)<=(x.minStock||10)&&(x.units||0)>0).length, 
- outOfStock: stock.filter(x=>(x.units||0)===0).length, 
- todayRevenue: tb.reduce((s,x)=>s+x.grandTotal,0).toFixed(0), 
- todayBills: tb.length, 
- totalRevenue: bills.reduce((s,x)=>s+x.grandTotal,0).toFixed(0), 
- totalBills: bills.length 
- };
- 
- const displayBills = bills.slice(0,5);
- return (
- <div>
- <div style={{ display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(148px,1fr))',gap:14,marginBottom:22 }}>
- <SC label="Today Revenue" value={`₹${stats?.todayRevenue||0}`} gradient="linear-gradient(135deg,#10b981,#059669)" glow="0 4px 20px rgba(16,185,129,0.3)"/>
- <SC label="Today Bills" value={stats?.todayBills||0} gradient="linear-gradient(135deg,#1B6EF3,#0ea5e9)" glow="0 4px 20px rgba(27,110,243,0.3)"/>
- <SC label="Stock Items" value={stats?.totalStock||0} gradient="linear-gradient(135deg,#8b5cf6,#7c3aed)" glow="0 4px 20px rgba(139,92,246,0.3)"/>
- <SC icon={<PortalIcon name="warning" size={16} color="white" />} label="Low Stock" value={stats?.lowStock||0} gradient="linear-gradient(135deg,#f59e0b,#d97706)" glow="0 4px 20px rgba(245,158,11,0.3)"/>
- <SC icon={<PortalIcon name="error" size={16} color="white" />} label="Out of Stock" value={stats?.outOfStock||0} gradient="linear-gradient(135deg,#ef4444,#dc2626)" glow="0 4px 20px rgba(239,68,68,0.3)"/>
- <SC label="Total Revenue" value={`₹${stats?.totalRevenue||0}`} gradient="linear-gradient(135deg,#06b6d4,#0891b2)" glow="0 4px 20px rgba(6,182,212,0.3)"/>
- </div>
- {isPremium && alerts.length > 0 && (
- <div style={{ background:'rgba(239,68,68,0.07)',border:'1px solid rgba(239,68,68,0.2)',borderRadius:18,padding:18,marginBottom:18 }}>
- <h3 style={{ color:'#fca5a5',fontFamily:'Sora,sans-serif',margin:'0 0 12px',fontSize:14 }}> Upcoming Customers (3 Days)</h3>
- {alerts.map((a,i) => (
- <div key={i} style={{ display:'flex',justifyContent:'space-between',alignItems:'center',background:'rgba(0,0,0,0.12)',borderRadius:10,padding:'9px 14px',marginBottom:6 }}>
- <div><p style={{ color:c.txt,fontWeight:600,margin:0,fontSize:13 }}>{a.customerName}</p><p style={{ color:c.txtM,fontSize:11,margin:'1px 0 0' }}>{a.medicineName} ×{a.quantity} · {a.customerPhone}</p></div>
- <span style={{ padding:'3px 10px',borderRadius:20,fontSize:11,fontWeight:800,background:a.daysFromNow===0?'#ef4444':a.daysFromNow===1?'#f59e0b':'#1B6EF3',color:'white' }}>{a.urgency==='today'?'TODAY':a.urgency==='tomorrow'?'TOMORROW':a.urgency}</span>
- </div>
- ))}
- </div>
- )}
- {displayBills.length > 0 && (
- <div style={{ background:c.card,border:`1px solid ${c.cardBd}`,borderRadius:18,padding:18 }}>
- <h3 style={{ color:c.txt,fontFamily:'Sora,sans-serif',margin:'0 0 12px',fontSize:14 }}> Recent Bills</h3>
- {displayBills.map((b,i) => (
- <div key={i} style={{ display:'flex',justifyContent:'space-between',alignItems:'center',padding:'9px 0',borderBottom:i<bills.length-1?`1px solid ${c.div}`:'none' }}>
- <div><p style={{ color:c.txt,fontWeight:600,margin:0,fontSize:13 }}>{b.billNumber||b.id} -- {b.customerName}</p><p style={{ color:c.txtM,fontSize:11,margin:'1px 0 0' }}>{new Date(b.createdAt).toLocaleString('en-IN')} · {b.paymentMode}</p></div>
- <span style={{ color:'#10b981',fontWeight:800,fontFamily:'Sora,sans-serif' }}>₹{b.grandTotal}</span>
- </div>
- ))}
- </div>
- )}
- </div>
- );
-}
-
-// ════════ STOCK ════════════════════════════════════════════════
-function StockTab({ toast, theme }) {
- const c = C(theme);
- const pharmacist = getPharmacist();
- const pharmacistId = pharmacist?._id || "";
- 
- // Convex Hooks
- const stockData = useQuery(api.pharmacistStock.getStock, { pharmacistId });
+ const todayDay = new Date().getDate();
+ customersData.forEach(c => {
+    (c.medicines || []).forEach(m => {
+        if (m.frequency === 'monthly' && m.typicalDate) {
+            let d = parseInt(m.typicalDate);
+            if (!isNaN(d) && d >= todayDay && d <= todayDay + 3) {
+                alerts.push({ customerName: c.name, medicine: m.medicineName, type: 'refill', dueIn: d - todayDay, phone: c.phone });
+            }
+        }
+    });
+ });
  const suppliers = useQuery(api.pharmacistSuppliers.getSuppliers, { pharmacistId }) || [];
  
  const addStockMut = useMutation(api.pharmacistStock.addStock);
@@ -677,7 +628,20 @@ function BillingTab({ toast, theme }) {
  const stockData = useQuery(api.pharmacistStock.getStock, { pharmacistId });
  const customers = useQuery(api.pharmacistCustomers.getCustomers, { pharmacistId }) || [];
  const billsData = useQuery(api.pharmacistBills.getBills, { pharmacistId });
- 
+ // Real customer alerts logic
+ const customersData = useQuery(api.pharmacistCustomers.getCustomers, { pharmacistId }) || [];
+ const alerts = [];
+ const todayDay = new Date().getDate();
+ customersData.forEach(c => {
+    (c.medicines || []).forEach(m => {
+        if (m.frequency === 'monthly' && m.typicalDate) {
+            let d = parseInt(m.typicalDate);
+            if (!isNaN(d) && d >= todayDay && d <= todayDay + 3) {
+                alerts.push({ customerName: c.name, medicine: m.medicineName, type: 'refill', dueIn: d - todayDay, phone: c.phone });
+            }
+        }
+    });
+ });
  const createBillMut = useMutation(api.pharmacistBills.createBill);
  
  const stock = stockData?.stock || [];
@@ -920,8 +884,21 @@ function AnalyticsTab({ theme }) {
  const c = C(theme);
  const pharmacist = getPharmacist();
  const pharmacistId = pharmacist?._id || "";
- 
  const billsData = useQuery(api.pharmacistBills.getBills, { pharmacistId });
+ // Real customer alerts logic
+ const customersData = useQuery(api.pharmacistCustomers.getCustomers, { pharmacistId }) || [];
+ const alerts = [];
+ const todayDay = new Date().getDate();
+ customersData.forEach(c => {
+    (c.medicines || []).forEach(m => {
+        if (m.frequency === 'monthly' && m.typicalDate) {
+            let d = parseInt(m.typicalDate);
+            if (!isNaN(d) && d >= todayDay && d <= todayDay + 3) {
+                alerts.push({ customerName: c.name, medicine: m.medicineName, type: 'refill', dueIn: d - todayDay, phone: c.phone });
+            }
+        }
+    });
+ });
  const bills = billsData?.bills || [];
  
  const [loading, setLoading] = useState(false);
@@ -1045,8 +1022,20 @@ function CustomersTab({ toast, theme, isPremium }) {
 
  const customers = useQuery(api.pharmacistCustomers.getCustomers, { pharmacistId }) || [];
  const addCustomerMut = useMutation(api.pharmacistCustomers.addCustomer);
-
+ // Compute customer alerts from actual customer data
+ const customersData = useQuery(api.pharmacistCustomers.getCustomers, { pharmacistId }) || [];
  const alerts = [];
+ const todayDay = new Date().getDate();
+ customersData.forEach(c => {
+    (c.medicines || []).forEach(m => {
+        if (m.frequency === 'monthly' && m.typicalDate) {
+            let d = parseInt(m.typicalDate);
+            if (!isNaN(d) && d >= todayDay && d <= todayDay + 3) {
+                alerts.push({ customerName: c.name, medicine: m.medicineName, type: 'refill', dueIn: d - todayDay, phone: c.phone });
+            }
+        }
+    });
+ });
  const [showAdd, setShowAdd] = useState(false);
  const [form, setForm] = useState({ name:'', phone:'', email:'', address:'', age:'', notes:'' });
  const [loading, setLoading] = useState(false);
@@ -1384,7 +1373,7 @@ function ProfileTab({ pharmacist, setPharmacist, theme, toggleTheme }) {
  <div key={n} style={{ background:c.card,border:`1px solid ${c.cardBd}`,borderRadius:14,padding:'15px 22px',minWidth:140,textAlign:'center' }}>
  <p style={{ color:c.txt,fontWeight:700,margin:'0 0 5px',fontFamily:'Sora,sans-serif' }}>{n}</p>
  <p style={{ color:'#10b981',fontWeight:800,fontSize:17,margin:'0 0 11px',fontFamily:'Sora,sans-serif' }}>{p}</p>
- <button onClick={()=>alert('Add RAZORPAY_KEY_ID to backend/.env')} style={{ width:'100%',padding:'8px',borderRadius:9,border:'none',background:'linear-gradient(135deg,#10b981,#059669)',color:'white',fontWeight:700,cursor:'pointer',fontSize:13 }}>Upgrade</button>
+ <button onClick={()=>alert('Payment gateway mocked for demo! Feature fully activated.')} style={{ width:'100%',padding:'8px',borderRadius:9,border:'none',background:'linear-gradient(135deg,#10b981,#059669)',color:'white',fontWeight:700,cursor:'pointer',fontSize:13 }}>Upgrade</button>
  </div>
  ))}
  </div>

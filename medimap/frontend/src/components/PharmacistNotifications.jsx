@@ -100,9 +100,9 @@ export default function PharmacistNotifications({ pharmacistId, theme }) {
       if (data.error) throw new Error(data.error);
 
       if (response === 'approved') {
-        addToast('✅ Approved! Price updated in your stock & customer portal.', 'success');
+        addToast('Approved. Price updated in your stock and customer portal.', 'success');
       } else {
-        addToast('❌ Rejected. Request deleted.', 'error');
+        addToast('Rejected. Request deleted.', 'error');
       }
       loadNotifs();
     } catch (e) {
@@ -129,7 +129,7 @@ export default function PharmacistNotifications({ pharmacistId, theme }) {
       {/* Bell button — fixed position, always top-right */}
       <div ref={ref} style={{ position: 'fixed', top: 16, right: 20, zIndex: 1100 }}>
         <button onClick={() => setOpen(!open)}
-          style={{ position: 'relative', width: 40, height: 40, borderRadius: 11, border: `1px solid ${border}`, background: open ? (isDark ? 'rgba(16,185,129,0.15)' : '#f0fdf4') : (isDark ? 'rgba(255,255,255,0.04)' : '#fff'), cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: sub, boxShadow: '0 2px 8px rgba(0,0,0,0.12)' }}>
+          style={{ position: 'relative', width: 42, height: 42, borderRadius: 14, border: `1px solid ${border}`, background: open ? (isDark ? 'rgba(16,185,129,0.14)' : '#ecfdf5') : (isDark ? 'rgba(255,255,255,0.04)' : '#fff'), cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: sub, boxShadow: '0 8px 24px rgba(0,0,0,0.10)' }}>
           <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
           </svg>
@@ -142,19 +142,19 @@ export default function PharmacistNotifications({ pharmacistId, theme }) {
 
         {/* Dropdown panel */}
         {open && (
-          <div style={{ position: 'absolute', top: 48, right: 0, width: 420, maxWidth: 'calc(100vw - 30px)', background: bg, border: `1px solid ${border}`, borderRadius: 18, boxShadow: '0 20px 60px rgba(0,0,0,0.22)', zIndex: 1200, overflow: 'hidden' }}>
+          <div style={{ position: 'absolute', top: 50, right: 0, width: 420, maxWidth: 'calc(100vw - 30px)', background: bg, border: `1px solid ${border}`, borderRadius: 20, boxShadow: '0 24px 60px rgba(0,0,0,0.20)', zIndex: 1200, overflow: 'hidden' }}>
             {/* Header */}
             <div style={{ padding: '13px 18px', borderBottom: `1px solid ${border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: isDark ? 'rgba(16,185,129,0.07)' : 'rgba(16,185,129,0.05)' }}>
-              <span style={{ color: txt, fontWeight: 700, fontFamily: 'Sora,sans-serif', fontSize: 15 }}>🔔 Price Requests</span>
+              <span style={{ color: txt, fontWeight: 700, fontFamily: 'Sora,sans-serif', fontSize: 15, letterSpacing: '0.02em' }}>Price requests</span>
               {unread > 0 && <span style={{ background: '#ef4444', color: 'white', fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 999 }}>{unread} new</span>}
             </div>
 
             {/* List */}
             <div style={{ maxHeight: 480, overflowY: 'auto' }}>
               {!notifs.length ? (
-                <div style={{ textAlign: 'center', padding: 40, color: muted }}>
-                  <div style={{ fontSize: 32, marginBottom: 8 }}>🔕</div>
-                  <p style={{ fontSize: 13 }}>No price requests yet</p>
+                <div style={{ textAlign: 'center', padding: 42, color: muted }}>
+                  <div style={{ width: 42, height: 42, margin: '0 auto 10px', borderRadius: 14, background: isDark ? 'rgba(255,255,255,0.05)' : '#f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>•</div>
+                  <p style={{ fontSize: 13, margin: 0 }}>No price requests yet</p>
                 </div>
               ) : notifs.map(n => (
                 <div key={n.id} style={{ padding: '14px 18px', borderBottom: `1px solid ${border}`, background: n.isRead ? 'transparent' : (isDark ? 'rgba(27,110,243,0.04)' : 'rgba(27,110,243,0.02)') }}>
@@ -162,7 +162,7 @@ export default function PharmacistNotifications({ pharmacistId, theme }) {
                   {/* Notif header */}
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 9 }}>
                     <div style={{ display: 'flex', gap: 9, alignItems: 'flex-start' }}>
-                      <span style={{ fontSize: 18 }}>💊</span>
+                      <span style={{ width: 30, height: 30, borderRadius: 10, background: isDark ? 'rgba(16,185,129,0.12)' : '#ecfdf5', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#10b981', fontSize: 14, fontWeight: 700, flexShrink: 0 }}>Rx</span>
                       <div>
                         <p style={{ color: txt, fontWeight: 600, margin: 0, fontSize: 14 }}>{n.submissionData?.medicineName}</p>
                         <p style={{ color: muted, fontSize: 11, margin: '2px 0 0' }}>{timeAgo(n.createdAt)} · by {n.submissionData?.userName || 'User'}</p>
@@ -188,7 +188,7 @@ export default function PharmacistNotifications({ pharmacistId, theme }) {
                   {/* User note */}
                   {n.submissionData?.personalNote && (
                     <div style={{ background: isDark ? 'rgba(245,158,11,0.08)' : '#fffbeb', border: `1px solid ${isDark ? 'rgba(245,158,11,0.2)' : '#fde68a'}`, borderRadius: 9, padding: '7px 11px', marginBottom: 9 }}>
-                      <p style={{ color: '#f59e0b', fontSize: 10, fontWeight: 700, margin: '0 0 2px' }}>📝 USER NOTE</p>
+                      <p style={{ color: '#f59e0b', fontSize: 10, fontWeight: 700, margin: '0 0 2px', letterSpacing: '0.08em' }}>USER NOTE</p>
                       <p style={{ color: isDark ? 'rgba(255,255,255,0.6)' : '#92400e', fontSize: 12, margin: 0, fontStyle: 'italic' }}>"{n.submissionData.personalNote}"</p>
                     </div>
                   )}
@@ -196,14 +196,14 @@ export default function PharmacistNotifications({ pharmacistId, theme }) {
                   {/* Already responded */}
                   {n.pharmacistResponse ? (
                     <div style={{ padding: '8px 12px', borderRadius: 9, fontSize: 12, fontWeight: 700, background: n.pharmacistResponse === 'approved' ? (isDark ? 'rgba(16,185,129,0.1)' : '#ecfdf5') : (isDark ? 'rgba(239,68,68,0.1)' : '#fef2f2'), color: n.pharmacistResponse === 'approved' ? '#10b981' : '#ef4444' }}>
-                      {n.pharmacistResponse === 'approved' ? '✅ You approved — price updated' : n.pharmacistResponse === 'already_processed' ? 'ℹ️ Already processed' : '❌ You rejected'}
+                      {n.pharmacistResponse === 'approved' ? 'Approved and updated' : n.pharmacistResponse === 'already_processed' ? 'Already processed' : 'Rejected'}
                     </div>
                   ) : (
                     <div>
                       {/* POINT 3 — Medicine dropdown to select which stock item to update */}
                       <div style={{ marginBottom: 9 }}>
                         <p style={{ color: muted, fontSize: 11, fontWeight: 700, margin: '0 0 5px', letterSpacing: '0.04em' }}>
-                          📦 SELECT MEDICINE TO UPDATE PRICE
+                          SELECT MEDICINE TO UPDATE PRICE
                         </p>
                         {(stockMatches[n.id] || []).length > 0 ? (
                           <select
@@ -225,7 +225,7 @@ export default function PharmacistNotifications({ pharmacistId, theme }) {
                         )}
                         {selectedStock[n.id] && selectedStock[n.id] !== 'new' && (
                           <p style={{ color: '#10b981', fontSize: 11, margin: '4px 0 0', fontWeight: 600 }}>
-                            ✅ Will update selling price to ₹{n.submissionData?.price}
+                            Will update selling price to ₹{n.submissionData?.price}
                           </p>
                         )}
                       </div>
@@ -238,11 +238,11 @@ export default function PharmacistNotifications({ pharmacistId, theme }) {
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                         <button onClick={() => respond(n.id, 'approved')} disabled={responding === n.id}
                           style={{ padding: '9px', borderRadius: 9, border: 'none', background: 'linear-gradient(135deg,#10b981,#059669)', color: 'white', fontWeight: 700, cursor: 'pointer', fontSize: 12, opacity: responding === n.id ? 0.6 : 1 }}>
-                          {responding === n.id ? '...' : '✅ Approve'}
+                          {responding === n.id ? 'Processing' : 'Approve'}
                         </button>
                         <button onClick={() => respond(n.id, 'rejected')} disabled={responding === n.id}
                           style={{ padding: '9px', borderRadius: 9, border: 'none', background: 'linear-gradient(135deg,#ef4444,#dc2626)', color: 'white', fontWeight: 700, cursor: 'pointer', fontSize: 12, opacity: responding === n.id ? 0.6 : 1 }}>
-                          {responding === n.id ? '...' : '❌ Reject'}
+                          {responding === n.id ? 'Processing' : 'Reject'}
                         </button>
                       </div>
                     </div>
@@ -252,7 +252,7 @@ export default function PharmacistNotifications({ pharmacistId, theme }) {
             </div>
 
             <div style={{ padding: '8px 16px', borderTop: `1px solid ${border}`, textAlign: 'center' }}>
-              <button onClick={loadNotifs} style={{ background: 'none', border: 'none', color: '#10b981', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>🔄 Refresh</button>
+              <button onClick={loadNotifs} style={{ background: 'none', border: 'none', color: '#10b981', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>Refresh</button>
             </div>
           </div>
         )}

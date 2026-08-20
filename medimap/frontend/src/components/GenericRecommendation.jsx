@@ -1,19 +1,22 @@
 import { useState, useEffect } from 'react';
-import { getGenericRecommendation } from '../services/api';
+import { useAction } from "convex/react";
+import { api } from "../../convex/_generated/api";
 
 export default function GenericRecommendation({ medicineName }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState(false);
 
+  const getRecommendation = useAction(api.ai.getGenericRecommendation);
+
   useEffect(() => {
     if (!medicineName) return;
     setLoading(true);
-    getGenericRecommendation(medicineName)
+    getRecommendation({ medicineName })
       .then(setData)
       .catch(() => setData(null))
       .finally(() => setLoading(false));
-  }, [medicineName]);
+  }, [medicineName, getRecommendation]);
 
   if (loading) {
     return (

@@ -84,8 +84,8 @@ export default function Navbar() {
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', height:64 }}>
 
           {/* Logo */}
-          <Link to="/" className="inline-flex items-center gap-2">
-            <img src="/logo.png" alt="MediMap" className="h-10 object-contain" />
+          <Link to="/" className="inline-flex items-center gap-2 transition-transform hover:scale-105">
+            <img src="/logo.png" alt="MediMap" className="h-10 w-10 object-cover rounded-xl shadow-sm" />
             <span className="font-bold text-2xl tracking-tight" style={{ color: dark ? 'white' : '#1A1A1A' }}>
               Medi<span style={{ color:'#00C2A8' }}>Map</span>
             </span>

@@ -4,8 +4,13 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useLang } from '../context/LanguageContext';
 
-function timeAgo(dateStr) {
+function timeAgo(dateStr, lang) {
   const diff = Math.floor((Date.now() - new Date(dateStr)) / 1000);
+  if (lang === 'hi') {
+    if (diff < 3600) return `${Math.floor(diff/60)} मिनट पहले`;
+    if (diff < 86400) return `${Math.floor(diff/3600)} घंटे पहले`;
+    return `${Math.floor(diff/86400)} दिन पहले`;
+  }
   if (diff < 3600) return `${Math.floor(diff/60)}m ago`;
   if (diff < 86400) return `${Math.floor(diff/3600)}h ago`;
   return `${Math.floor(diff/86400)}d ago`;
@@ -52,6 +57,7 @@ function TabBtn({ active, onClick, icon, label, badge }) {
 
 // ── MediPoints Tab ────────────────────────────────────────────
 function PointsTab({ userId }) {
+  const { lang } = useLang();
   const [pts, setPts] = useState(0);
   const [transactions, setTransactions] = useState([]);
   const [coupons, setCoupons] = useState([]);
@@ -75,7 +81,7 @@ function PointsTab({ userId }) {
       if (d.error) throw new Error(d.error);
       setPts(d.remainingPoints);
       setCoupons(prev => [...prev, d.coupon]);
-      setToast(`🎉 Coupon ${d.coupon.code} generated!`);
+      setToast(lang === 'hi' ? `🎉 कूपन ${d.coupon.code} उत्पन्न हुआ!` : `🎉 Coupon ${d.coupon.code} generated!`);
       setTimeout(() => setToast(''), 3000);
     } catch (err) { setToast(err.message); setTimeout(() => setToast(''), 3000); }
     setRedeeming(null);
@@ -89,7 +95,7 @@ function PointsTab({ userId }) {
 
       {/* Points Card */}
       <div className="rounded-2xl p-6 mb-5 text-white text-center" style={{background:'linear-gradient(135deg,#2E7DFF,#00C2A8)'}}>
-        <p className="text-white/70 text-sm">Your Balance</p>
+        <p className="text-white/70 text-sm">{lang === 'hi' ? 'आपका बैलेंस' : 'Your Balance'}</p>
         <p className="text-5xl font-bold my-1">{pts}</p>
         <p className="text-white/80 text-sm">MediPoints</p>
         {nextTier && (
@@ -97,33 +103,35 @@ function PointsTab({ userId }) {
             <div style={{background:'rgba(255,255,255,0.2)',borderRadius:999,height:6,overflow:'hidden'}}>
               <div style={{width:`${Math.min(100,(pts/nextTier.points)*100)}%`,background:'white',height:'100%',borderRadius:999,transition:'width 0.5s'}} />
             </div>
-            <p className="text-white/70 text-xs mt-1">{nextTier.points - pts} more points for {nextTier.discount}% OFF</p>
+            <p className="text-white/70 text-xs mt-1">
+              {lang === 'hi' ? `${nextTier.points - pts} और पॉइंट्स ${nextTier.discount}% छूट के लिए` : `${nextTier.points - pts} more points for ${nextTier.discount}% OFF`}
+            </p>
           </div>
         )}
       </div>
 
       {/* How to earn */}
       <div className="card p-4 mb-4">
-        <p className="font-semibold text-gray-900 mb-3">💡 How to Earn</p>
+        <p className="font-semibold text-gray-900 mb-3">💡 {lang === 'hi' ? 'पॉइंट्स कैसे कमाएं' : 'How to Earn'}</p>
         <div className="space-y-2">
           {[
-            { icon:'📸', label:'Submit price (approved)', pts:'+20' },
-            { icon:'⭐', label:'Rate a pharmacy', pts:'+5' },
-            { icon:'👤', label:'Complete profile', pts:'+10' },
+            { icon:'📸', labelEn:'Submit price (approved)', labelHi:'कीमत जमा करें (स्वीकृत)', pts:'+20' },
+            { icon:'⭐', labelEn:'Rate a pharmacy', labelHi:'फार्मेसी को रेट करें', pts:'+5' },
+            { icon:'👤', labelEn:'Complete profile', labelHi:'प्रोफ़ाइल पूरी करें', pts:'+10' },
           ].map((item,i) => (
             <div key={i} className="flex items-center gap-3 p-2.5 bg-gray-50 rounded-xl">
               <span className="text-lg">{item.icon}</span>
-              <span className="flex-1 text-sm text-gray-700">{item.label}</span>
-              <span className="text-sm font-bold text-emerald-600">{item.pts} pts</span>
+              <span className="flex-1 text-sm text-gray-700">{lang === 'hi' ? item.labelHi : item.labelEn}</span>
+              <span className="text-sm font-bold text-emerald-600">{item.pts} {lang === 'hi' ? 'पॉइंट्स' : 'pts'}</span>
             </div>
           ))}
         </div>
-        <Link to="/submit-price" className="btn-primary w-full text-center text-sm !py-2 mt-3 block">📸 Submit Price & Earn</Link>
+        <Link to="/submit-price" className="btn-primary w-full text-center text-sm !py-2 mt-3 block">📸 {lang === 'hi' ? 'कीमत जमा करें और कमाएं' : 'Submit Price & Earn'}</Link>
       </div>
 
       {/* Redeem */}
       <div className="card p-4 mb-4">
-        <p className="font-semibold text-gray-900 mb-3">🎁 Redeem Rewards</p>
+        <p className="font-semibold text-gray-900 mb-3">🎁 {lang === 'hi' ? 'इनाम भुनाएं' : 'Redeem Rewards'}</p>
         <div className="space-y-3">
           {POINT_TIERS.map(tier => {
             const canRedeem = pts >= tier.points;
@@ -132,12 +140,12 @@ function PointsTab({ userId }) {
                 <div className="flex items-center gap-3">
                   <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${tier.color} flex items-center justify-center text-xl flex-shrink-0`}>{tier.icon}</div>
                   <div className="flex-1">
-                    <p className="font-bold text-gray-900 text-sm">{tier.discount}% OFF Coupon</p>
-                    <p className="text-xs text-[#2E7DFF]">{tier.points} points</p>
+                    <p className="font-bold text-gray-900 text-sm">{tier.discount}% {lang === 'hi' ? 'छूट कूपन' : 'OFF Coupon'}</p>
+                    <p className="text-xs text-[#2E7DFF]">{tier.points} {lang === 'hi' ? 'पॉइंट्स' : 'points'}</p>
                   </div>
                   <button onClick={() => canRedeem && redeem(tier.tier)} disabled={!canRedeem || redeeming===tier.tier}
                     className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${canRedeem ? 'bg-[#2E7DFF] text-white' : 'bg-gray-100 text-gray-400 cursor-not-allowed'}`}>
-                    {redeeming===tier.tier ? '...' : canRedeem ? 'Redeem' : `${tier.points-pts} more`}
+                    {redeeming===tier.tier ? '...' : canRedeem ? (lang === 'hi' ? 'भुनाएं' : 'Redeem') : (lang === 'hi' ? `${tier.points-pts} और चाहिए` : `${tier.points-pts} more`)}
                   </button>
                 </div>
               </div>
@@ -149,10 +157,10 @@ function PointsTab({ userId }) {
       {/* Coupons */}
       {coupons.length > 0 && (
         <div className="card p-4 mb-4">
-          <p className="font-semibold text-gray-900 mb-3">🎟️ My Coupons</p>
+          <p className="font-semibold text-gray-900 mb-3">🎟️ {lang === 'hi' ? 'मेरे कूपन' : 'My Coupons'}</p>
           {coupons.map(c => (
             <div key={c.id} className="flex items-center justify-between p-3 border-2 border-dashed border-[#2E7DFF] bg-blue-50 rounded-xl mb-2">
-              <div><p className="font-bold text-gray-900">{c.discount}% OFF</p><p className="text-xs text-gray-400">Expires {new Date(c.expiresAt).toLocaleDateString('en-IN')}</p></div>
+              <div><p className="font-bold text-gray-900">{c.discount}% {lang === 'hi' ? 'छूट' : 'OFF'}</p><p className="text-xs text-gray-400">{lang === 'hi' ? 'समाप्ति' : 'Expires'} {new Date(c.expiresAt).toLocaleDateString('en-IN')}</p></div>
               <code className="bg-white border border-[#2E7DFF] text-[#2E7DFF] px-3 py-1 rounded-lg font-bold text-sm">{c.code}</code>
             </div>
           ))}
@@ -162,11 +170,11 @@ function PointsTab({ userId }) {
       {/* History */}
       {transactions.length > 0 && (
         <div className="card p-4">
-          <p className="font-semibold text-gray-900 mb-3">📋 Points History</p>
+          <p className="font-semibold text-gray-900 mb-3">📋 {lang === 'hi' ? 'पॉइंट्स इतिहास' : 'Points History'}</p>
           {transactions.slice(0,8).map(tx => (
             <div key={tx.id} className="flex justify-between py-2 border-b border-gray-50 last:border-0">
-              <div><p className="text-sm text-gray-700">{tx.reason}</p><p className="text-xs text-gray-400">{timeAgo(tx.createdAt)}</p></div>
-              <span className={`font-bold text-sm ${tx.points>0?'text-emerald-600':'text-red-500'}`}>{tx.points>0?'+':''}{tx.points} pts</span>
+              <div><p className="text-sm text-gray-700">{tx.reason}</p><p className="text-xs text-gray-400">{timeAgo(tx.createdAt, lang)}</p></div>
+              <span className={`font-bold text-sm ${tx.points>0?'text-emerald-600':'text-red-500'}`}>{tx.points>0?'+':''}{tx.points} {lang === 'hi' ? 'पॉइंट्स' : 'pts'}</span>
             </div>
           ))}
         </div>
@@ -177,12 +185,13 @@ function PointsTab({ userId }) {
 
 // ── Search History Tab ────────────────────────────────────────
 function HistoryTab({ navigate }) {
+  const { lang } = useLang();
   const history = JSON.parse(localStorage.getItem('medimap_search_history')||'[]');
   if (!history.length) return (
     <div className="card p-10 text-center">
       <div className="text-4xl mb-3">🔍</div>
-      <p className="text-gray-500 font-medium">No search history yet</p>
-      <Link to="/" className="btn-primary mt-4 inline-block text-sm">Search Now</Link>
+      <p className="text-gray-500 font-medium">{lang === 'hi' ? 'अभी तक कोई खोज इतिहास नहीं' : 'No search history yet'}</p>
+      <Link to="/" className="btn-primary mt-4 inline-block text-sm">{lang === 'hi' ? 'अभी खोजें' : 'Search Now'}</Link>
     </div>
   );
   return (
@@ -191,21 +200,22 @@ function HistoryTab({ navigate }) {
         <div key={i} className="card p-4 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center">🔍</div>
-            <div><p className="font-medium text-gray-900 text-sm">{item.query}</p><p className="text-xs text-gray-400">{timeAgo(item.date)}</p></div>
+            <div><p className="font-medium text-gray-900 text-sm">{item.query}</p><p className="text-xs text-gray-400">{timeAgo(item.date, lang)}</p></div>
           </div>
-          <button onClick={() => navigate(`/results?q=${encodeURIComponent(item.query)}`)} className="btn-secondary text-xs !py-1.5 !px-3">Search Again →</button>
+          <button onClick={() => navigate(`/results?q=${encodeURIComponent(item.query)}`)} className="btn-secondary text-xs !py-1.5 !px-3">{lang === 'hi' ? 'फिर खोजें →' : 'Search Again →'}</button>
         </div>
       ))}
-      <button onClick={() => { localStorage.removeItem('medimap_search_history'); window.location.reload(); }} className="text-xs text-red-400 hover:text-red-600 mt-2 block text-center w-full">Clear History</button>
+      <button onClick={() => { localStorage.removeItem('medimap_search_history'); window.location.reload(); }} className="text-xs text-red-400 hover:text-red-600 mt-2 block text-center w-full">{lang === 'hi' ? 'इतिहास साफ़ करें' : 'Clear History'}</button>
     </div>
   );
 }
 
 // ── Saved Pharmacies Tab ──────────────────────────────────────
 function SavedTab() {
+  const { lang } = useLang();
   const [pharmacies, setPharmacies] = useState(JSON.parse(localStorage.getItem('medimap_saved_pharmacies')||JSON.stringify(DEFAULT_SAVED)));
   const remove = (id) => { const u=pharmacies.filter(p=>p.id!==id); setPharmacies(u); localStorage.setItem('medimap_saved_pharmacies',JSON.stringify(u)); };
-  if (!pharmacies.length) return <div className="card p-10 text-center"><div className="text-4xl mb-3">🏥</div><p className="text-gray-500">No saved pharmacies</p></div>;
+  if (!pharmacies.length) return <div className="card p-10 text-center"><div className="text-4xl mb-3">🏥</div><p className="text-gray-500">{lang === 'hi' ? 'कोई सेव की हुई फार्मेसी नहीं' : 'No saved pharmacies'}</p></div>;
   return (
     <div className="space-y-3">
       {pharmacies.map(p => (
@@ -217,13 +227,13 @@ function SavedTab() {
               <p className="text-xs text-gray-400">{p.address}</p>
               <div className="flex gap-3 mt-1">
                 <span className="text-xs text-yellow-500">⭐ {p.rating}</span>
-                <span className={`text-xs ${p.isOpen?'text-emerald-600':'text-red-400'}`}>{p.isOpen?'● Open':'● Closed'}</span>
+                <span className={`text-xs ${p.isOpen?'text-emerald-600':'text-red-400'}`}>{p.isOpen ? (lang === 'hi' ? '● खुला' : '● Open') : (lang === 'hi' ? '● बंद' : '● Closed')}</span>
               </div>
             </div>
           </div>
           <div className="flex flex-col gap-1.5">
-            <a href={`https://maps.google.com/?q=${encodeURIComponent(p.address)}`} target="_blank" rel="noreferrer" className="btn-primary text-xs !py-1.5 !px-3">🗺️ Directions</a>
-            <button onClick={()=>remove(p.id)} className="text-xs text-red-400 text-center">Remove</button>
+            <a href={`https://maps.google.com/?q=${encodeURIComponent(p.address)}`} target="_blank" rel="noreferrer" className="btn-primary text-xs !py-1.5 !px-3">🗺️ {lang === 'hi' ? 'रास्ता' : 'Directions'}</a>
+            <button onClick={()=>remove(p.id)} className="text-xs text-red-400 text-center">{lang === 'hi' ? 'हटाएं' : 'Remove'}</button>
           </div>
         </div>
       ))}
@@ -233,16 +243,17 @@ function SavedTab() {
 
 // ── Reviews Tab ───────────────────────────────────────────────
 function ReviewsTab() {
+  const { lang } = useLang();
   const [reviews, setReviews] = useState(JSON.parse(localStorage.getItem('medimap_my_reviews')||JSON.stringify(DEFAULT_REVIEWS)));
   const remove = (id) => { const u=reviews.filter(r=>r.id!==id); setReviews(u); localStorage.setItem('medimap_my_reviews',JSON.stringify(u)); };
-  if (!reviews.length) return <div className="card p-10 text-center"><div className="text-4xl mb-3">⭐</div><p className="text-gray-500">No reviews yet</p></div>;
+  if (!reviews.length) return <div className="card p-10 text-center"><div className="text-4xl mb-3">⭐</div><p className="text-gray-500">{lang === 'hi' ? 'अभी कोई समीक्षा नहीं' : 'No reviews yet'}</p></div>;
   return (
     <div className="space-y-3">
       {reviews.map(r => (
         <div key={r.id} className="card p-4">
           <div className="flex justify-between mb-2">
             <div><p className="font-semibold text-gray-900 text-sm">{r.pharmacyName}</p><Stars rating={r.rating} /></div>
-            <button onClick={()=>remove(r.id)} className="text-xs text-red-400">Delete</button>
+            <button onClick={()=>remove(r.id)} className="text-xs text-red-400">{lang === 'hi' ? 'हटाएं' : 'Delete'}</button>
           </div>
           {r.review && <p className="text-sm text-gray-600 bg-gray-50 rounded-xl p-3 italic">"{r.review}"</p>}
         </div>
@@ -253,6 +264,7 @@ function ReviewsTab() {
 
 // ── Alerts Tab ────────────────────────────────────────────────
 function AlertsTab() {
+  const { lang } = useLang();
   const [alerts, setAlerts] = useState(JSON.parse(localStorage.getItem('medimap_price_alerts')||JSON.stringify(DEFAULT_ALERTS)));
   const [showAdd, setShowAdd] = useState(false);
   const [form, setForm] = useState({medicine:'',targetPrice:'',pharmacy:''});
@@ -269,15 +281,15 @@ function AlertsTab() {
   return (
     <div>
       <button onClick={()=>setShowAdd(!showAdd)} className="btn-primary w-full !py-2.5 text-sm mb-4">
-        {showAdd?'✕ Cancel':'+ Add Price Alert'}
+        {showAdd ? (lang === 'hi' ? '✕ रद्द करें' : '✕ Cancel') : (lang === 'hi' ? '+ कीमत अलर्ट जोड़ें' : '+ Add Price Alert')}
       </button>
       {showAdd && (
         <div className="card p-4 mb-4 border-2 border-[#2E7DFF]">
           <div className="space-y-2">
-            <input className="input-field" placeholder="Medicine name" value={form.medicine} onChange={e=>setForm({...form,medicine:e.target.value})} />
-            <input className="input-field" type="number" placeholder="Target price (₹)" value={form.targetPrice} onChange={e=>setForm({...form,targetPrice:e.target.value})} />
-            <input className="input-field" placeholder="Pharmacy (optional)" value={form.pharmacy} onChange={e=>setForm({...form,pharmacy:e.target.value})} />
-            <button onClick={add} className="btn-primary w-full text-sm !py-2">Set Alert 🔔</button>
+            <input className="input-field" placeholder={lang === 'hi' ? 'दवा का नाम' : 'Medicine name'} value={form.medicine} onChange={e=>setForm({...form,medicine:e.target.value})} />
+            <input className="input-field" type="number" placeholder={lang === 'hi' ? 'लक्ष्य कीमत (₹)' : 'Target price (₹)'} value={form.targetPrice} onChange={e=>setForm({...form,targetPrice:e.target.value})} />
+            <input className="input-field" placeholder={lang === 'hi' ? 'फार्मेसी (वैकल्पिक)' : 'Pharmacy (optional)'} value={form.pharmacy} onChange={e=>setForm({...form,pharmacy:e.target.value})} />
+            <button onClick={add} className="btn-primary w-full text-sm !py-2">{lang === 'hi' ? 'अलर्ट सेट करें 🔔' : 'Set Alert 🔔'}</button>
           </div>
         </div>
       )}
@@ -291,16 +303,16 @@ function AlertsTab() {
                   <p className="font-semibold text-gray-900 text-sm">{a.medicine}</p>
                   <p className="text-xs text-gray-400">{a.pharmacy}</p>
                   <div className="flex gap-4 mt-2">
-                    <div><p className="text-xs text-gray-400">Target</p><p className="font-bold text-[#2E7DFF] text-sm">₹{a.targetPrice}</p></div>
-                    <div><p className="text-xs text-gray-400">Current</p><p className={`font-bold text-sm ${reached?'text-emerald-600':'text-gray-900'}`}>₹{a.currentPrice}</p></div>
-                    {!reached && <div><p className="text-xs text-gray-400">Gap</p><p className="font-bold text-orange-500 text-sm">₹{a.currentPrice-a.targetPrice}</p></div>}
+                    <div><p className="text-xs text-gray-400">{lang === 'hi' ? 'लक्ष्य' : 'Target'}</p><p className="font-bold text-[#2E7DFF] text-sm">₹{a.targetPrice}</p></div>
+                    <div><p className="text-xs text-gray-400">{lang === 'hi' ? 'वर्तमान' : 'Current'}</p><p className={`font-bold text-sm ${reached?'text-emerald-600':'text-gray-900'}`}>₹{a.currentPrice}</p></div>
+                    {!reached && <div><p className="text-xs text-gray-400">{lang === 'hi' ? 'अंतर' : 'Gap'}</p><p className="font-bold text-orange-500 text-sm">₹{a.currentPrice-a.targetPrice}</p></div>}
                   </div>
                 </div>
                 <div className="flex flex-col gap-1.5 items-end">
                   <button onClick={()=>toggle(a.id)} className={`text-xs px-2.5 py-1 rounded-full font-medium ${a.active?'bg-blue-100 text-[#2E7DFF]':'bg-gray-100 text-gray-400'}`}>
-                    {a.active?'🔔 Active':'🔕 Paused'}
+                    {a.active ? (lang === 'hi' ? '🔔 सक्रिय' : '🔔 Active') : (lang === 'hi' ? '🔕 रुका' : '🔕 Paused')}
                   </button>
-                  <button onClick={()=>remove(a.id)} className="text-xs text-red-400">Remove</button>
+                  <button onClick={()=>remove(a.id)} className="text-xs text-red-400">{lang === 'hi' ? 'हटाएं' : 'Remove'}</button>
                 </div>
               </div>
             </div>
@@ -313,26 +325,27 @@ function AlertsTab() {
 
 // ── Savings Tab ───────────────────────────────────────────────
 function SavingsTab() {
+  const { lang } = useLang();
   const savings = JSON.parse(localStorage.getItem('medimap_saved_money')||JSON.stringify(DEFAULT_SAVINGS));
   return (
     <div>
       <div className="grid grid-cols-2 gap-3 mb-5">
         <div className="card p-4 text-center bg-gradient-to-br from-emerald-50 to-teal-50 border-emerald-100">
-          <p className="text-xs text-emerald-600 font-medium mb-1">Total Saved</p>
+          <p className="text-xs text-emerald-600 font-medium mb-1">{lang === 'hi' ? 'कुल बचत' : 'Total Saved'}</p>
           <p className="text-3xl font-bold text-emerald-600">₹{savings.total}</p>
         </div>
         <div className="card p-4 text-center bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-100">
-          <p className="text-xs text-[#2E7DFF] font-medium mb-1">This Month</p>
+          <p className="text-xs text-[#2E7DFF] font-medium mb-1">{lang === 'hi' ? 'इस महीने' : 'This Month'}</p>
           <p className="text-3xl font-bold text-[#2E7DFF]">₹{savings.thisMonth}</p>
         </div>
       </div>
       <div className="card p-4">
-        <p className="font-semibold text-gray-900 mb-3">Recent Savings</p>
+        <p className="font-semibold text-gray-900 mb-3">{lang === 'hi' ? 'हाल की बचत' : 'Recent Savings'}</p>
         {savings.transactions.map((t,i) => (
           <div key={i} className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
             <div>
               <p className="text-sm font-medium text-gray-900">{t.medicine}</p>
-              <p className="text-xs text-gray-400">Paid ₹{t.cheapest} · Avg ₹{t.avg} · {timeAgo(t.date)}</p>
+              <p className="text-xs text-gray-400">{lang === 'hi' ? `₹${t.cheapest} दिया · औसत ₹${t.avg}` : `Paid ₹${t.cheapest} · Avg ₹${t.avg}`} · {timeAgo(t.date, lang)}</p>
             </div>
             <p className="font-bold text-emerald-600 text-sm">-₹{t.saved}</p>
           </div>
@@ -345,6 +358,7 @@ function SavingsTab() {
 // ── Main ProfilePage ──────────────────────────────────────────
 export default function ProfilePage() {
   const navigate = useNavigate();
+  const { lang } = useLang();
   const [user, setUser] = useState(null);
   const [activeTab, setActiveTab] = useState('points');
   const [editMode, setEditMode] = useState(false);
@@ -371,12 +385,12 @@ export default function ProfilePage() {
   if (!user) return null;
 
   const TABS = [
-    { id:'points',    icon:'🏆', label:'MediPoints' },
-    { id:'history',   icon:'🔍', label:'History',   badge: searchHistory.length },
-    { id:'saved',     icon:'🏥', label:'Saved' },
-    { id:'reviews',   icon:'⭐', label:'Reviews' },
-    { id:'alerts',    icon:'🔔', label:'Alerts',    badge: pendingAlerts },
-    { id:'savings',   icon:'💰', label:'Savings' },
+    { id:'points',    icon:'🏆', label: lang === 'hi' ? 'मेडीपॉइंट्स' : 'MediPoints' },
+    { id:'history',   icon:'🔍', label: lang === 'hi' ? 'इतिहास' : 'History',   badge: searchHistory.length },
+    { id:'saved',     icon:'🏥', label: lang === 'hi' ? 'सेव किए' : 'Saved' },
+    { id:'reviews',   icon:'⭐', label: lang === 'hi' ? 'समीक्षाएं' : 'Reviews' },
+    { id:'alerts',    icon:'🔔', label: lang === 'hi' ? 'अलर्ट' : 'Alerts',    badge: pendingAlerts },
+    { id:'savings',   icon:'💰', label: lang === 'hi' ? 'बचत' : 'Savings' },
   ];
 
   return (
@@ -395,8 +409,8 @@ export default function ProfilePage() {
             {editMode ? (
               <div className="flex items-center gap-2 mb-1">
                 <input className="input-field !py-1.5 text-base font-bold max-w-xs" value={editName} onChange={e=>setEditName(e.target.value)} autoFocus/>
-                <button onClick={saveEdit} className="btn-primary text-xs !py-1.5 !px-3">Save</button>
-                <button onClick={()=>setEditMode(false)} className="btn-secondary text-xs !py-1.5 !px-3">Cancel</button>
+                <button onClick={saveEdit} className="btn-primary text-xs !py-1.5 !px-3">{lang === 'hi' ? 'सेव' : 'Save'}</button>
+                <button onClick={()=>setEditMode(false)} className="btn-secondary text-xs !py-1.5 !px-3">{lang === 'hi' ? 'रद्द' : 'Cancel'}</button>
               </div>
             ) : (
               <div className="flex items-center gap-2 mb-1">
@@ -407,25 +421,25 @@ export default function ProfilePage() {
               </div>
             )}
             <p className="text-sm text-gray-400">{user.email}</p>
-            <span className="inline-flex items-center gap-1 text-xs bg-blue-50 text-[#2E7DFF] px-2 py-0.5 rounded-full mt-1 font-medium">👤 Customer</span>
+            <span className="inline-flex items-center gap-1 text-xs bg-blue-50 text-[#2E7DFF] px-2 py-0.5 rounded-full mt-1 font-medium">👤 {lang === 'hi' ? 'उपयोगकर्ता' : 'Customer'}</span>
           </div>
           <button onClick={logout} className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium text-red-500 border border-red-100 hover:bg-red-50 transition-all">
-            🚪 Logout
+            🚪 {lang === 'hi' ? 'लॉगआउट' : 'Logout'}
           </button>
         </div>
 
         {/* Stats */}
         <div className="grid grid-cols-4 gap-2 mt-5 pt-4 border-t border-gray-100">
           {[
-            { icon:'🔍', label:'Searches', value: searchHistory.length||0 },
-            { icon:'🏥', label:'Saved', value: JSON.parse(localStorage.getItem('medimap_saved_pharmacies')||'[]').length||2 },
-            { icon:'🏆', label:'Points', value: '—' },
-            { icon:'💰', label:'Saved', value: `₹${DEFAULT_SAVINGS.total}` },
+            { icon:'🔍', labelEn:'Searches', labelHi:'खोजें', value: searchHistory.length||0 },
+            { icon:'🏥', labelEn:'Saved', labelHi:'सेव', value: JSON.parse(localStorage.getItem('medimap_saved_pharmacies')||'[]').length||2 },
+            { icon:'🏆', labelEn:'Points', labelHi:'पॉइंट्स', value: '—' },
+            { icon:'💰', labelEn:'Saved', labelHi:'बचत', value: `₹${DEFAULT_SAVINGS.total}` },
           ].map(s => (
-            <div key={s.label} className="text-center p-2 rounded-xl bg-gray-50">
+            <div key={s.labelEn} className="text-center p-2 rounded-xl bg-gray-50">
               <div className="text-xl">{s.icon}</div>
               <p className="text-sm font-bold text-gray-900">{s.value}</p>
-              <p className="text-xs text-gray-400">{s.label}</p>
+              <p className="text-xs text-gray-400">{lang === 'hi' ? s.labelHi : s.labelEn}</p>
             </div>
           ))}
         </div>

@@ -1,26 +1,9 @@
-// frontend/src/pages/AdminPage.jsx — COMPLETE WORKING VERSION
-// Fixes: action buttons persist, medipoints, coupons, broadcast, featured, listed/suspended UI
 import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
+import { useQuery, useMutation } from "convex/react";
+import { api } from "../../convex/_generated/api";
 
 const ADMIN_KEY = 'admin123';
-const API = 'https://medimap-backend-ygqj.onrender.com/api';
-
-function apiCall(url, opts = {}) {
-  return fetch(`${API}${url}`, {
-    ...opts,
-    headers: {
-      'Content-Type': 'application/json',
-      'x-admin-key': ADMIN_KEY,
-      ...(opts.headers || {}),
-    },
-    body: opts.body ? JSON.stringify(opts.body) : undefined,
-  }).then(async r => {
-    const data = await r.json();
-    if (!r.ok) throw new Error(data.error || `HTTP ${r.status}`);
-    return data;
-  });
-}
 
 function Toast({ msg, type, onClose }) {
   useEffect(() => { const t = setTimeout(onClose, 3500); return () => clearTimeout(t); }, []);
@@ -40,8 +23,7 @@ function Badge({ children, color = 'blue' }) {
 // ANALYTICS TAB
 // ══════════════════════════════════════════════════════════════
 function AnalyticsTab() {
-  const [stats, setStats] = useState(null);
-  useEffect(() => { apiCall('/admin/stats').then(setStats).catch(console.error); }, []);
+  const stats = useQuery(api.admin.getStats);
   if (!stats) return <div className="text-center py-10 text-gray-400">Loading...</div>;
   return (
     <div>
@@ -67,28 +49,18 @@ function AnalyticsTab() {
 // SUBMISSIONS TAB
 // ══════════════════════════════════════════════════════════════
 function SubmissionsTab({ toast }) {
-  const [submissions, setSubmissions] = useState([]);
   const [filter, setFilter] = useState('pending');
-  const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(null);
   const [expanded, setExpanded] = useState(null);
 
-  const load = useCallback(() => {
-    setLoading(true);
-    apiCall(`/admin/submissions?status=${filter}`)
-      .then(d => setSubmissions(d.submissions || []))
-      .catch(err => toast(err.message, 'error'))
-      .finally(() => setLoading(false));
-  }, [filter]);
+  const submissions = useQuery(api.admin.getSubmissions, { status: filter });
+  const updateSubmission = useMutation(api.admin.updateSubmission);
 
-  useEffect(() => { load(); }, [load]);
-
-  async function action(id, act, extra = {}) {
+  async function action(id, act) {
     setActionLoading(id + act);
     try {
-      await apiCall(`/admin/submissions/${id}`, { method: 'PATCH', body: { action: act, adminKey: ADMIN_KEY, ...extra } });
-      toast(act === 'approve' ? '✅ Approved! Price updated & request deleted.' : '❌ Rejected & deleted.');
-      load();
+      await updateSubmission({ id, action: act });
+      toast(act === 'approve' ? '✅ Approved! Price updated.' : '❌ Rejected.');
     } catch (err) { toast(err.message, 'error'); }
     setActionLoading(null);
   }
@@ -104,21 +76,19 @@ function SubmissionsTab({ toast }) {
         ))}
       </div>
 
-      {loading ? <div className="card p-8 text-center text-gray-400">Loading...</div> :
+      {submissions === undefined ? <div className="card p-8 text-center text-gray-400">Loading...</div> :
         !submissions.length ? <div className="card p-12 text-center"><div className="text-5xl mb-3">📭</div><p className="text-gray-500">No {filter} submissions</p></div> :
         <div className="space-y-3">
           {submissions.map(sub => {
-            // FIX #9: correct isListed display
             const isListedPharmacy = !sub.isNewPharmacy && sub.displayPharmacy?.isListed === true;
             return (
-              <div key={sub._id || sub.id} className={`card border-l-4 ${sub.status === 'pending' ? 'border-amber-400' : 'border-emerald-400'}`}>
+              <div key={sub._id} className={`card border-l-4 ${sub.status === 'pending' ? 'border-amber-400' : 'border-emerald-400'}`}>
                 <div className="p-4 cursor-pointer" onClick={() => setExpanded(expanded === sub._id ? null : sub._id)}>
                   <div className="flex items-start justify-between gap-3 flex-wrap">
                     <div className="flex-1">
                       <div className="flex items-center gap-2 flex-wrap mb-1">
                         <h3 className="font-bold text-gray-900">{sub.medicineName}</h3>
                         <Badge color={sub.status === 'pending' ? 'amber' : 'green'}>{sub.status}</Badge>
-                        {/* FIX #9: show correct listed/unlisted badge */}
                         {isListedPharmacy
                           ? <Badge color="blue">✅ Listed</Badge>
                           : sub.isNewPharmacy
@@ -142,7 +112,6 @@ function SubmissionsTab({ toast }) {
 
                 {expanded === sub._id && (
                   <div className="border-t px-4 pb-4 pt-3 space-y-3" style={{ borderColor: 'var(--border)' }}>
-                    {/* Bill image */}
                     {sub.billImage?.url ? (
                       <div>
                         <p className="text-xs font-semibold text-gray-500 mb-1.5">📄 Bill Image</p>
@@ -152,7 +121,6 @@ function SubmissionsTab({ toast }) {
                       </div>
                     ) : <div className="bg-gray-50 rounded-xl p-3 text-xs text-gray-400 text-center">No bill image</div>}
 
-                    {/* Personal note */}
                     {sub.personalNote && (
                       <div className="bg-purple-50 border border-purple-100 rounded-xl p-3">
                         <p className="text-xs font-semibold text-purple-700 mb-1">📝 User Note</p>
@@ -160,15 +128,6 @@ function SubmissionsTab({ toast }) {
                       </div>
                     )}
 
-                    {/* Pharmacist response */}
-                    {sub.pharmacistResponse?.status && sub.pharmacistResponse.status !== 'not_applicable' && (
-                      <div className={`rounded-xl p-3 text-xs ${sub.pharmacistResponse.status === 'approved' ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'}`}>
-                        🏥 Pharmacist: {sub.pharmacistResponse.status.toUpperCase()}
-                        {sub.pharmacistResponse.note && ` — "${sub.pharmacistResponse.note}"`}
-                      </div>
-                    )}
-
-                    {/* New pharmacy data */}
                     {sub.isNewPharmacy && sub.newPharmacyData && (
                       <div className="bg-orange-50 border border-orange-200 rounded-xl p-3">
                         <p className="text-xs font-semibold text-orange-700 mb-1">🆕 New Pharmacy Info</p>
@@ -177,18 +136,17 @@ function SubmissionsTab({ toast }) {
                       </div>
                     )}
 
-                    {/* Actions */}
                     {sub.status === 'pending' && (
                       <div className="flex gap-3">
-                        <button onClick={() => action(sub._id || sub.id, 'approve')} disabled={!!actionLoading}
+                        <button onClick={() => action(sub._id, 'approve')} disabled={!!actionLoading}
                           className="flex-1 py-2.5 rounded-xl text-sm font-bold text-white"
                           style={{ background: 'linear-gradient(135deg,#10b981,#059669)' }}>
-                          {actionLoading === (sub._id || sub.id) + 'approve' ? '...' : '✅ Approve (+20 pts)'}
+                          {actionLoading === sub._id + 'approve' ? '...' : '✅ Approve (+20 pts)'}
                         </button>
-                        <button onClick={() => action(sub._id || sub.id, 'reject')} disabled={!!actionLoading}
+                        <button onClick={() => action(sub._id, 'reject')} disabled={!!actionLoading}
                           className="flex-1 py-2.5 rounded-xl text-sm font-bold text-white"
                           style={{ background: 'linear-gradient(135deg,#ef4444,#dc2626)' }}>
-                          {actionLoading === (sub._id || sub.id) + 'reject' ? '...' : '❌ Reject'}
+                          {actionLoading === sub._id + 'reject' ? '...' : '❌ Reject'}
                         </button>
                       </div>
                     )}
@@ -204,33 +162,23 @@ function SubmissionsTab({ toast }) {
 }
 
 // ══════════════════════════════════════════════════════════════
-// PHARMACISTS TAB — FIX #1, #4, #9
+// PHARMACISTS TAB
 // ══════════════════════════════════════════════════════════════
 function PharmacistsTab({ toast }) {
-  const [pharmacists, setPharmacists] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [actionLoading, setActionLoading] = useState(null);
   const [msgModal, setMsgModal] = useState(null);
   const [msgText, setMsgText] = useState('');
 
-  const load = useCallback(() => {
-    setLoading(true);
-    apiCall(`/admin/pharmacists?search=${search}&status=${statusFilter}&limit=50`)
-      .then(d => setPharmacists(d.pharmacists || []))
-      .catch(err => toast(err.message, 'error'))
-      .finally(() => setLoading(false));
-  }, [search, statusFilter]);
+  const pharmacists = useQuery(api.admin.getPharmacists, { search, status: statusFilter });
+  const updatePharmacist = useMutation(api.admin.updatePharmacist);
+  const sendMsg = useMutation(api.admin.sendMessageToPharmacist);
 
-  useEffect(() => { load(); }, [load]);
-
-  // FIX #1: Each action calls DB immediately and updates local state
-  async function updatePharmacist(id, updates, successMsg) {
+  async function handleUpdate(id, updates, successMsg) {
     setActionLoading(id + JSON.stringify(updates));
     try {
-      const updated = await apiCall(`/admin/pharmacists/${id}`, { method: 'PATCH', body: updates });
-      setPharmacists(prev => prev.map(p => p._id === id ? { ...p, ...updated } : p));
+      await updatePharmacist({ id, ...updates });
       toast(successMsg || '✅ Updated!');
     } catch (err) { toast(err.message, 'error'); }
     setActionLoading(null);
@@ -239,7 +187,7 @@ function PharmacistsTab({ toast }) {
   async function sendMessage(id) {
     if (!msgText.trim()) return;
     try {
-      await apiCall(`/admin/pharmacists/${id}/message`, { method: 'POST', body: { message: msgText } });
+      await sendMsg({ pharmacistId: id, message: msgText });
       toast('📧 Message sent!');
       setMsgModal(null); setMsgText('');
     } catch (err) { toast(err.message, 'error'); }
@@ -247,7 +195,6 @@ function PharmacistsTab({ toast }) {
 
   return (
     <div>
-      {/* Message modal */}
       {msgModal && (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl">
@@ -261,23 +208,19 @@ function PharmacistsTab({ toast }) {
         </div>
       )}
 
-      {/* Filters */}
       <div className="flex gap-3 mb-4 flex-wrap">
         <input className="input-field flex-1" style={{ minWidth: 180 }} placeholder="Search pharmacy..." value={search} onChange={e => setSearch(e.target.value)}/>
         <select className="input-field" style={{ width: 160 }} value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
           <option value="">All</option>
-          <option value="active">Active</option>
+          <option value="listed">Listed</option>
           <option value="suspended">Suspended</option>
           <option value="premium">Premium</option>
-          <option value="featured">Featured</option>
-          <option value="verified">Verified</option>
         </select>
       </div>
 
-      {loading ? <div className="card p-8 text-center text-gray-400">Loading...</div> :
+      {pharmacists === undefined ? <div className="card p-8 text-center text-gray-400">Loading...</div> :
         <div className="space-y-3">
           {pharmacists.map(p => {
-            // FIX #4: always derive boolean correctly
             const isSuspended = p.isSuspended === true;
             const isListed = p.isListed !== false;
             const isPremium = p.isPremium === true;
@@ -294,7 +237,6 @@ function PharmacistsTab({ toast }) {
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-1.5 mb-1">
                         <p className="font-bold text-gray-900 text-sm">{p.name}</p>
-                        {/* FIX #4, #9: badges based on correct boolean */}
                         {isVerified && <Badge color="green">✅ Verified</Badge>}
                         {isFeatured && <Badge color="amber">⭐ Featured</Badge>}
                         {isPremium && <Badge color="purple">✨ Premium</Badge>}
@@ -303,28 +245,29 @@ function PharmacistsTab({ toast }) {
                       </div>
                       <p className="text-xs text-gray-400">{p.address}</p>
                       <div className="flex gap-3 mt-1 text-xs text-gray-400">
-                        <span>📦 {p.stockCount || 0} meds</span>
-                        <span>⭐ {p.rating}</span>
-                        <span>📧 {p.email}</span>
+                        <span>📧 {p.email || p.contact}</span>
                       </div>
                     </div>
                   </div>
 
-                  {/* Action buttons — FIX #1: each updates DB */}
                   <div className="flex flex-wrap gap-2 flex-shrink-0">
-                    <button onClick={() => updatePharmacist(p._id, { isVerified: !isVerified }, `${!isVerified ? '✅ Verified' : 'Unverified'}`)}
+                    <button onClick={() => handleUpdate(p._id, { isListed: !isListed }, `${!isListed ? '✅ Listed' : 'Unlisted'}`)}
+                      className={`text-xs px-3 py-1.5 rounded-lg font-semibold ${isListed ? 'bg-gray-100 text-gray-600' : 'bg-emerald-100 text-emerald-700'}`}>
+                      {isListed ? 'Unlist' : '✅ List'}
+                    </button>
+                    <button onClick={() => handleUpdate(p._id, { isVerified: !isVerified }, `${!isVerified ? '✅ Verified' : 'Unverified'}`)}
                       className={`text-xs px-3 py-1.5 rounded-lg font-semibold ${isVerified ? 'bg-gray-100 text-gray-600' : 'bg-emerald-100 text-emerald-700'}`}>
                       {isVerified ? 'Unverify' : '✅ Verify'}
                     </button>
-                    <button onClick={() => updatePharmacist(p._id, { isFeatured: !isFeatured, featuredExpiry: isFeatured ? null : new Date(Date.now() + 30 * 86400000) }, `${!isFeatured ? '⭐ Featured' : 'Unfeatured'}`)}
+                    <button onClick={() => handleUpdate(p._id, { isFeatured: !isFeatured }, `${!isFeatured ? '⭐ Featured' : 'Unfeatured'}`)}
                       className={`text-xs px-3 py-1.5 rounded-lg font-semibold ${isFeatured ? 'bg-gray-100 text-gray-600' : 'bg-amber-100 text-amber-700'}`}>
                       {isFeatured ? 'Unfeature' : '⭐ Feature'}
                     </button>
-                    <button onClick={() => updatePharmacist(p._id, { grantPremium: !isPremium, revokePremium: isPremium, premiumPlan: 'monthly' }, `${!isPremium ? '✨ Premium granted!' : 'Premium revoked'}`)}
+                    <button onClick={() => handleUpdate(p._id, { isPremium: !isPremium }, `${!isPremium ? '✨ Premium granted!' : 'Premium revoked'}`)}
                       className={`text-xs px-3 py-1.5 rounded-lg font-semibold ${isPremium ? 'bg-gray-100 text-gray-600' : 'bg-purple-100 text-purple-700'}`}>
                       {isPremium ? 'Revoke Premium' : '✨ Grant Premium'}
                     </button>
-                    <button onClick={() => updatePharmacist(p._id, { isSuspended: !isSuspended, suspendedReason: !isSuspended ? 'Admin action' : undefined }, `${!isSuspended ? '🚫 Suspended' : '✅ Unsuspended'}`)}
+                    <button onClick={() => handleUpdate(p._id, { isSuspended: !isSuspended }, `${!isSuspended ? '🚫 Suspended' : '✅ Unsuspended'}`)}
                       className={`text-xs px-3 py-1.5 rounded-lg font-semibold ${isSuspended ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
                       {isSuspended ? 'Unsuspend' : '🚫 Suspend'}
                     </button>
@@ -342,38 +285,29 @@ function PharmacistsTab({ toast }) {
 }
 
 // ══════════════════════════════════════════════════════════════
-// MEDIPOINTS TAB — FIX #2: Admin award persists to DB
+// MEDIPOINTS TAB
 // ══════════════════════════════════════════════════════════════
 function MediaPointsTab({ toast }) {
-  const [userId, setUserId] = useState('');
+  const [search, setSearch] = useState('');
   const [amount, setAmount] = useState('');
   const [reason, setReason] = useState('');
   const [action, setAction] = useState('award');
-  const [wallet, setWallet] = useState(null);
   const [loading, setLoading] = useState(false);
   const [history, setHistory] = useState([]);
 
-  async function lookup() {
-    if (!userId.trim()) return;
-    try {
-      const data = await fetch(`${API}/points/${encodeURIComponent(userId)}`).then(r => r.json());
-      setWallet(data);
-    } catch (err) { toast(err.message, 'error'); }
-  }
+  const users = useQuery(api.admin.getUsers, { search });
+  const selectedUser = users && users.length > 0 ? users[0] : null;
+  const updateUsr = useMutation(api.admin.updateUser);
 
   async function execute() {
-    if (!userId.trim() || !amount) return toast('Fill userId and amount', 'error');
+    if (!selectedUser || !amount) return toast('User not found or amount missing', 'error');
     setLoading(true);
     try {
       const pts = action === 'award' ? Math.abs(parseInt(amount)) : -Math.abs(parseInt(amount));
-      // FIX #2: calls admin-award endpoint which persists to MongoDB
-      const data = await apiCall('/points/admin-award', {
-        method: 'POST',
-        body: { userId, points: pts, reason: reason || 'Admin action', adminKey: ADMIN_KEY },
-      });
-      toast(`✅ ${action === 'award' ? '+' : '-'}${Math.abs(pts)} pts → ${userId}. New balance: ${data.points}`);
-      setHistory(prev => [{ userId, points: pts, reason: reason || 'Admin action', at: new Date().toISOString() }, ...prev]);
-      setWallet(prev => prev ? { ...prev, points: data.points } : null);
+      const newBalance = (selectedUser.medipoints || 0) + pts;
+      await updateUsr({ id: selectedUser._id, medipoints: newBalance });
+      toast(`✅ ${action === 'award' ? '+' : '-'}${Math.abs(pts)} pts → ${selectedUser.email}. New balance: ${newBalance}`);
+      setHistory(prev => [{ userId: selectedUser.email, points: pts, reason: reason || 'Admin action', at: new Date().toISOString() }, ...prev]);
       setAmount(''); setReason('');
     } catch (err) { toast(err.message, 'error'); }
     setLoading(false);
@@ -383,18 +317,21 @@ function MediaPointsTab({ toast }) {
     <div>
       <div className="grid sm:grid-cols-2 gap-5 mb-5">
         <div className="card p-5">
-          <h3 className="font-semibold text-gray-900 mb-3">🔍 Lookup User Wallet</h3>
+          <h3 className="font-semibold text-gray-900 mb-3">🔍 Lookup User</h3>
           <div className="flex gap-2 mb-3">
-            <input className="input-field flex-1" placeholder="User email / ID" value={userId} onChange={e => setUserId(e.target.value)} onKeyDown={e => e.key === 'Enter' && lookup()}/>
-            <button onClick={lookup} className="btn-primary text-sm !px-4">Lookup</button>
+            <input className="input-field flex-1" placeholder="Search User email / name" value={search} onChange={e => setSearch(e.target.value)}/>
           </div>
-          {wallet && (
+          {selectedUser ? (
             <div className="bg-blue-50 rounded-xl p-4 text-center">
+              <p className="text-sm font-bold text-gray-700">{selectedUser.name}</p>
+              <p className="text-xs text-gray-500 mb-2">{selectedUser.email}</p>
               <p className="text-xs text-gray-500">Balance</p>
-              <p className="text-3xl font-bold text-[#1B6EF3]">{wallet.points}</p>
+              <p className="text-3xl font-bold text-[#1B6EF3]">{selectedUser.medipoints || 0}</p>
               <p className="text-xs text-gray-400">MediPoints</p>
             </div>
-          )}
+          ) : search && users && users.length === 0 ? (
+            <div className="bg-red-50 rounded-xl p-4 text-center text-red-600">No user found</div>
+          ) : null}
         </div>
 
         <div className="card p-5">
@@ -407,10 +344,9 @@ function MediaPointsTab({ toast }) {
                 </button>
               ))}
             </div>
-            <input className="input-field" placeholder="User email / ID *" value={userId} onChange={e => setUserId(e.target.value)}/>
             <input className="input-field" type="number" placeholder="Points *" value={amount} onChange={e => setAmount(e.target.value)}/>
             <input className="input-field" placeholder="Reason" value={reason} onChange={e => setReason(e.target.value)}/>
-            <button onClick={execute} disabled={loading} className={`btn-primary w-full !py-2.5 text-sm ${action === 'deduct' ? '!bg-red-500' : ''}`}>
+            <button onClick={execute} disabled={loading || !selectedUser} className={`btn-primary w-full !py-2.5 text-sm ${action === 'deduct' ? '!bg-red-500' : ''}`}>
               {loading ? '...' : `${action === 'award' ? '✅' : '❌'} ${action === 'award' ? 'Award' : 'Deduct'} ${amount || '?'} Points`}
             </button>
           </div>
@@ -433,33 +369,28 @@ function MediaPointsTab({ toast }) {
 }
 
 // ══════════════════════════════════════════════════════════════
-// COUPONS TAB — FIX #10, #11
+// COUPONS TAB
 // ══════════════════════════════════════════════════════════════
 function CouponsTab({ toast }) {
-  const [coupons, setCoupons] = useState([]);
   const [showCreate, setShowCreate] = useState(false);
   const [form, setForm] = useState({ discount: '20', validDays: '30', code: '', forAnyUser: true });
-
-  useEffect(() => { loadCoupons(); }, []);
-
-  function loadCoupons() {
-    apiCall('/admin/coupons').then(setCoupons).catch(() => {});
-  }
+  
+  const coupons = useQuery(api.admin.getCoupons) || [];
+  const createCou = useMutation(api.admin.createCoupon);
+  const deleteCou = useMutation(api.admin.deleteCoupon);
 
   async function createCoupon() {
     try {
-      const data = await apiCall('/admin/coupons', {
-        method: 'POST',
-        body: { ...form, adminKey: ADMIN_KEY },
-      });
-      toast(`🎟️ Coupon ${data.coupon?.code} created!`);
-      loadCoupons(); setShowCreate(false);
+      const finalCode = form.code || 'MEDI' + Math.floor(Math.random()*10000);
+      await createCou({ ...form, code: finalCode });
+      toast(`🎟️ Coupon ${finalCode} created!`);
+      setShowCreate(false);
       setForm({ discount: '20', validDays: '30', code: '', forAnyUser: true });
     } catch (err) { toast(err.message, 'error'); }
   }
 
-  async function deleteCoupon(id) {
-    try { await apiCall(`/admin/coupons/${id}`, { method: 'DELETE' }); toast('Deleted'); loadCoupons(); }
+  async function removeCoupon(id) {
+    try { await deleteCou({ id }); toast('Deleted'); }
     catch (err) { toast(err.message, 'error'); }
   }
 
@@ -479,7 +410,7 @@ function CouponsTab({ toast }) {
               </select></div>
             <div><p className="text-xs text-gray-500 mb-1">Valid Days</p>
               <input className="input-field" type="number" value={form.validDays} onChange={e => setForm({ ...form, validDays: e.target.value })}/></div>
-            <div className="col-span-2"><p className="text-xs text-gray-500 mb-1">Custom Code (optional — auto-generated if empty)</p>
+            <div className="col-span-2"><p className="text-xs text-gray-500 mb-1">Custom Code (optional)</p>
               <input className="input-field" placeholder="e.g. MEDISPECIAL20" value={form.code} onChange={e => setForm({ ...form, code: e.target.value.toUpperCase() })}/></div>
           </div>
           <div className="flex gap-3 mt-3">
@@ -504,7 +435,7 @@ function CouponsTab({ toast }) {
               </div>
               <div className="flex gap-2">
                 <button onClick={() => { navigator.clipboard.writeText(c.code); toast('Copied!'); }} className="text-xs bg-gray-100 text-gray-600 px-3 py-1.5 rounded-lg">📋</button>
-                <button onClick={() => deleteCoupon(c._id)} className="text-xs bg-red-100 text-red-600 px-3 py-1.5 rounded-lg">🗑️</button>
+                <button onClick={() => removeCoupon(c._id)} className="text-xs bg-red-100 text-red-600 px-3 py-1.5 rounded-lg">🗑️</button>
               </div>
             </div>
           </div>
@@ -516,20 +447,18 @@ function CouponsTab({ toast }) {
 }
 
 // ══════════════════════════════════════════════════════════════
-// BROADCAST TAB — FIX #10
+// BROADCAST TAB
 // ══════════════════════════════════════════════════════════════
 function BroadcastTab({ toast }) {
-  const [broadcasts, setBroadcasts] = useState([]);
   const [form, setForm] = useState({ title: '', message: '', type: 'info', target: 'all' });
-
-  useEffect(() => { apiCall('/admin/broadcasts').then(setBroadcasts).catch(() => {}); }, []);
+  const broadcasts = useQuery(api.admin.getAdminMessages) || [];
+  const bcast = useMutation(api.admin.broadcastMessage);
 
   async function send() {
-    if (!form.title || !form.message) return toast('Fill title and message', 'error');
+    if (!form.message) return toast('Fill message', 'error');
     try {
-      const data = await apiCall('/admin/broadcast', { method: 'POST', body: form });
+      await bcast(form);
       toast(`📢 Broadcast sent to ${form.target}!`);
-      setBroadcasts(prev => [data.broadcast, ...prev]);
       setForm({ title: '', message: '', type: 'info', target: 'all' });
     } catch (err) { toast(err.message, 'error'); }
   }
@@ -539,7 +468,7 @@ function BroadcastTab({ toast }) {
       <div className="card p-5 mb-5">
         <h3 className="font-semibold text-gray-900 mb-3">Send Broadcast</h3>
         <div className="space-y-3">
-          <input className="input-field" placeholder="Title *" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })}/>
+          <input className="input-field" placeholder="Title (optional)" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })}/>
           <textarea className="input-field" rows={3} placeholder="Message *" value={form.message} onChange={e => setForm({ ...form, message: e.target.value })}/>
           <div className="grid grid-cols-2 gap-3">
             <select className="input-field" value={form.type} onChange={e => setForm({ ...form, type: e.target.value })}>
@@ -557,15 +486,15 @@ function BroadcastTab({ toast }) {
 
       <div className="space-y-3">
         {broadcasts.map(b => (
-          <div key={b.id} className="card p-4">
+          <div key={b._id} className="card p-4">
             <div className="flex items-center gap-2 mb-1">
-              <p className="font-semibold text-gray-900 text-sm">{b.title}</p>
-              <Badge color={b.type === 'alert' ? 'red' : b.type === 'promo' ? 'green' : 'blue'}>{b.type}</Badge>
+              <p className="font-semibold text-gray-900 text-sm">{b.title || 'Broadcast'}</p>
+              <Badge color={b.type === 'alert' ? 'red' : b.type === 'promo' ? 'green' : 'blue'}>{b.type || 'info'}</Badge>
             </div>
             <p className="text-sm text-gray-600 mb-2">{b.message}</p>
             <div className="flex gap-3 text-xs text-gray-400">
-              <span>👥 {b.reach} reached</span><span>🎯 {b.target}</span>
-              <span>{new Date(b.sentAt).toLocaleDateString('en-IN')}</span>
+              <span>🎯 {b.target}</span>
+              <span>{new Date(b.createdAt).toLocaleDateString('en-IN')}</span>
             </div>
           </div>
         ))}
@@ -587,22 +516,46 @@ export default function AdminPage() {
   function showToast(msg, type = 'success') { setToast({ msg, type }); }
 
   if (!auth) return (
-    <div className="min-h-[calc(100vh-64px)] flex items-center justify-center px-4">
-      <div className="w-full max-w-sm">
+    <div className="min-h-screen flex flex-col items-center justify-center pt-24 pb-12 px-4 relative overflow-hidden" style={{ backgroundColor: '#F8FAFD' }}>
+      {/* Aurora Background */}
+      <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] rounded-full mix-blend-multiply filter blur-[100px] opacity-40 animate-pulse-glow" style={{ background: 'radial-gradient(circle, #8b5cf6, transparent)' }} />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[60vw] h-[60vw] rounded-full mix-blend-multiply filter blur-[120px] opacity-30 animate-pulse-glow" style={{ background: 'radial-gradient(circle, #ec4899, transparent)', animationDelay: '2s' }} />
+      </div>
+
+      <div className="w-full max-w-sm relative z-10 animate-slide-up mt-8 mb-12">
         <div className="text-center mb-8">
-          <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 text-3xl shadow-lg" style={{ background: 'linear-gradient(135deg,#1B6EF3,#00C2A8)' }}>🛡️</div>
-          <h1 className="text-2xl font-bold text-gray-900">Super Admin</h1>
-          <p className="text-gray-500 text-sm">MediMap Control Center</p>
+          <div className="w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-6 text-4xl shadow-[0_10px_30px_rgba(139,92,246,0.3)] bg-gradient-to-br from-purple-600 to-pink-500">🛡️</div>
+          <h1 className="text-3xl font-extrabold text-gray-900 font-sora">Super Admin</h1>
+          <p className="text-gray-500 font-medium mt-1">MediMap Control Center</p>
         </div>
-        <div className="card p-6">
-          <input type="password" className="input-field mb-3" placeholder="Admin key" value={keyInput}
+        
+        <div className="glass-panel bg-white/70 rounded-3xl p-8 shadow-2xl border border-white">
+          <input type="password" 
+            className="w-full px-4 py-3 bg-white/50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500 transition-all placeholder-gray-400 font-medium mb-4" 
+            placeholder="Admin Secret Key" value={keyInput}
             onChange={e => { setKeyInput(e.target.value); setKeyError(''); }}
             onKeyDown={e => e.key === 'Enter' && (keyInput === ADMIN_KEY ? setAuth(true) : setKeyError('Invalid key'))}/>
-          {keyError && <p className="text-red-500 text-xs mb-3">{keyError}</p>}
-          <button onClick={() => keyInput === ADMIN_KEY ? setAuth(true) : setKeyError('Invalid key')} className="btn-primary w-full !py-3">🔐 Login</button>
-          <p className="text-center text-xs text-gray-400 mt-3">Default: <code className="bg-gray-100 px-1 rounded">admin123</code></p>
+          
+          {keyError && (
+            <div className="mb-4 p-3 rounded-xl bg-red-50 border border-red-100 flex items-start gap-2">
+              <span className="text-red-500 text-sm">⚠️</span>
+              <p className="text-sm font-semibold text-red-600">{keyError}</p>
+            </div>
+          )}
+          
+          <button onClick={() => keyInput === ADMIN_KEY ? setAuth(true) : setKeyError('Invalid key')} 
+            className="w-full py-3.5 rounded-xl font-bold text-white shadow-lg shadow-purple-500/30 transform transition-transform hover:-translate-y-0.5 active:translate-y-0 bg-gradient-to-r from-purple-600 to-pink-500">
+            🔐 Authenticate
+          </button>
+          
+          <div className="mt-8 text-center border-t border-gray-100 pt-6">
+            <p className="text-gray-500 text-sm font-medium">
+              Return to <Link to="/" className="text-purple-600 font-bold hover:underline">MediMap Home</Link>
+            </p>
+            <p className="text-center text-xs text-gray-400 mt-3">Default: <code className="bg-gray-100 px-1 py-0.5 rounded">admin123</code></p>
+          </div>
         </div>
-        <div className="text-center mt-4"><Link to="/" className="text-sm text-[#1B6EF3] hover:underline">← MediMap</Link></div>
       </div>
     </div>
   );
@@ -617,7 +570,7 @@ export default function AdminPage() {
   ];
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6" style={{ backgroundColor: 'var(--bg-primary)', minHeight: '100vh' }}>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-24 pb-12" style={{ backgroundColor: 'var(--bg-primary)', minHeight: '100vh' }}>
       {toast && <Toast msg={toast.msg} type={toast.type} onClose={() => setToast(null)}/>}
 
       <div className="flex items-center justify-between mb-6 flex-wrap gap-3">

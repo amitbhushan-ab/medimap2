@@ -38,6 +38,10 @@ const translations = {
     loading: 'Loading...', error: 'Something went wrong', noResults: 'No results found',
     save: 'Save', cancel: 'Cancel', delete: 'Delete', edit: 'Edit', add: 'Add',
     submit: 'Submit', approve: 'Approve', reject: 'Reject',
+    // PharmacyDetail
+    backToResults: 'Back to Results', priceHistory: 'Price History',
+    priceHistorySubtitle: '7-month trend for this medicine at this pharmacy',
+    pharmacyDetails: 'Medicine at this pharmacy',
   },
   hi: {
     // Navbar
@@ -75,6 +79,10 @@ const translations = {
     loading: 'लोड हो रहा है...', error: 'कुछ गलत हुआ', noResults: 'कोई परिणाम नहीं',
     save: 'सेव करें', cancel: 'रद्द करें', delete: 'हटाएं', edit: 'संपादित करें', add: 'जोड़ें',
     submit: 'जमा करें', approve: 'स्वीकार करें', reject: 'अस्वीकार करें',
+    // PharmacyDetail
+    backToResults: 'परिणामों पर वापस', priceHistory: 'कीमत का इतिहास',
+    priceHistorySubtitle: 'इस फार्मेसी में इस दवा का 7 महीने का ट्रेंड',
+    pharmacyDetails: 'इस फार्मेसी में दवा',
   },
 };
 

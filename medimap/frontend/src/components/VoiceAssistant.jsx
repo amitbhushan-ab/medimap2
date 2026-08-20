@@ -107,13 +107,21 @@ export default function VoiceAssistant() {
       return;
     }
 
-    // If none matched — treat entire phrase as medicine search
-    const fallbackMsg = lang === 'hi'
-      ? `${text} खोज रहे हैं...`
-      : `Searching for ${text}...`;
-    setResponse(fallbackMsg);
-    speak(fallbackMsg);
-    setTimeout(() => navigate(`/results?q=${encodeURIComponent(text)}`), 1000);
+    // If none matched — only treat as medicine if it looks like a medicine name (2+ words or longer text)
+    if (lower.length > 4 && !lower.match(/^(map|scan|home|help|find|location|about|login|signup|profile|medi|मैप|होम|स्कैन|मदद)$/)) {
+      const fallbackMsg = lang === 'hi'
+        ? `${text} खोज रहे हैं...`
+        : `Searching for ${text}...`;
+      setResponse(fallbackMsg);
+      speak(fallbackMsg);
+      setTimeout(() => navigate(`/results?q=${encodeURIComponent(text)}`), 1000);
+    } else {
+      const unknownMsg = lang === 'hi'
+        ? 'समझ नहीं आया। कहें: मैप खोलो, पर्ची स्कैन करो, या दवाई का नाम बोलें।'
+        : 'Not understood. Try: open map, scan prescription, or say a medicine name.';
+      setResponse(unknownMsg);
+      speak(unknownMsg);
+    }
   };
 
   const startListening = () => {
@@ -139,11 +147,21 @@ export default function VoiceAssistant() {
 
   if (!supported) return null;
 
+  // Click floating button = immediately start listening & open panel
+  function handleFabClick() {
+    if (isListening) {
+      stopListening();
+      return;
+    }
+    setIsOpen(true);
+    setTimeout(() => startListening(), 100);
+  }
+
   return (
     <>
       {/* Floating mic button */}
       <button
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={handleFabClick}
         className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full shadow-xl flex items-center justify-center"
         style={{
           background: isListening

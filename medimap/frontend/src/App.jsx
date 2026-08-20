@@ -50,6 +50,7 @@ function AppInner() {
           <Route path="/" element={<HomePage/>}/>
           <Route path="/results" element={<Pad><ResultsPage/></Pad>}/>
           <Route path="/map" element={<Pad><MapViewPage/></Pad>}/>
+          <Route path="/map-view" element={<Pad><MapViewPage/></Pad>}/>
           <Route path="/scan" element={<ScanPrescription/>}/>
           <Route path="/pharmacy/:id" element={<Pad><PharmacyDetailPage/></Pad>}/>
           <Route path="/login" element={<Pad noPad><LoginPage/></Pad>}/>

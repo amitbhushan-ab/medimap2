@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
-import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents, Tooltip } from 'react-leaflet';
 import L from 'leaflet';
-import { searchMedicine, getPharmacies } from '../services/api';
-
+import { useQuery } from "convex/react";
+import { api } from "../../convex/_generated/api";
+import { useLang } from '../context/LanguageContext';
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
@@ -32,40 +33,193 @@ const QUICK_CITIES = ['Delhi', 'Mumbai', 'Bengaluru', 'Hyderabad', 'Faridabad', 
 
 function createUserIcon() {
   return L.divIcon({
-    html: `<div style="position:relative;width:22px;height:22px;">
-      <div style="position:absolute;inset:0;background:#2E7DFF;border-radius:50%;border:3px solid white;box-shadow:0 0 0 4px rgba(46,125,255,0.3);z-index:2;"></div>
+    html: `<div style="display:flex; flex-direction:column; align-items:center; z-index:2000;">
+      <div style="position:relative; width:40px; height:46px; display:flex; flex-direction:column; align-items:center;">
+        <div style="background: linear-gradient(135deg, #3B82F6, #1D4ED8); color: white; width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(37,99,235,0.4); border: 2.5px solid white; z-index: 2;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+          </svg>
+        </div>
+        <div style="width: 0; height: 0; border-left: 6px solid transparent; border-right: 6px solid transparent; border-top: 10px solid #1D4ED8; margin-top: -2px; z-index: 1; filter: drop-shadow(0 4px 2px rgba(37,99,235,0.3));"></div>
+      </div>
+      <div style="margin-top:-2px;font-size:11px;font-weight:800;color:#1E3A8A;text-shadow:1px 1px 0 #fff, -1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff;white-space:nowrap;letter-spacing:-0.2px;">
+        You
+      </div>
     </div>`,
     className: '',
-    iconSize: [22, 22],
-    iconAnchor: [11, 11],
-    popupAnchor: [0, -12],
+    iconSize: [140, 60],
+    iconAnchor: [70, 46],
+    popupAnchor: [0, -46],
   });
 }
 
-function createPriceIcon(price, isCheapest) {
+function createPriceIcon(price, isCheapest, name) {
+  const shortName = name ? (name.length > 20 ? name.substring(0,20) + '...' : name) : 'Pharmacy';
   return L.divIcon({
-    html: `<div style="background:${isCheapest ? '#00C2A8' : '#2E7DFF'};color:white;padding:4px 8px;border-radius:20px;font-family:sans-serif;font-size:12px;font-weight:700;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,0.25);border:2px solid white;transform:translateX(-50%);">₹${price}</div>`,
+    html: `<div style="display:flex; flex-direction:column; align-items:center;">
+      <div style="background:${isCheapest ? '#10B981' : '#2563EB'};color:white;padding:4px 10px;border-radius:20px;font-family:sans-serif;font-size:13px;font-weight:800;white-space:nowrap;box-shadow:0 4px 10px rgba(0,0,0,0.25);border:2px solid white;z-index:2;">
+        ₹${price}
+      </div>
+      <div style="width: 0; height: 0; border-left: 6px solid transparent; border-right: 6px solid transparent; border-top: 8px solid ${isCheapest ? '#10B981' : '#2563EB'}; margin-top: -1px; z-index: 1;"></div>
+      <div style="margin-top:2px;font-size:11px;font-weight:800;color:${isCheapest ? '#065F46' : '#1E3A8A'};text-shadow:1px 1px 0 #fff, -1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff;white-space:nowrap;letter-spacing:-0.2px;">
+        ${shortName}
+      </div>
+    </div>`,
     className: '',
-    iconSize: [60, 28],
-    iconAnchor: [30, 28],
-    popupAnchor: [0, -30],
+    iconSize: [140, 56],
+    iconAnchor: [70, 36],
+    popupAnchor: [0, -36],
+  });
+}
+
+function createPharmacyIcon(name) {
+  const shortName = name ? (name.length > 20 ? name.substring(0,20) + '...' : name) : 'Pharmacy';
+  return L.divIcon({
+    html: `<div style="display:flex; flex-direction:column; align-items:center; z-index:1000;">
+      <div style="position:relative; width:40px; height:46px; display:flex; flex-direction:column; align-items:center;">
+        <div style="background: linear-gradient(135deg, #10B981, #047857); color: white; width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(16,185,129,0.3); border: 2.5px solid white; z-index: 2;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M10.5 20.5l-7-7a4.95 4.95 0 1 1 7-7l7 7a4.95 4.95 0 1 1-7 7Z"/>
+            <path d="m8.5 8.5 7 7"/>
+          </svg>
+        </div>
+        <div style="width: 0; height: 0; border-left: 6px solid transparent; border-right: 6px solid transparent; border-top: 10px solid #047857; margin-top: -2px; z-index: 1; filter: drop-shadow(0 4px 2px rgba(16,185,129,0.25));"></div>
+      </div>
+      <div style="margin-top:-2px;font-size:11px;font-weight:800;color:#064E3B;text-shadow:1px 1px 0 #fff, -1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff;white-space:nowrap;letter-spacing:-0.2px;">
+        ${shortName}
+      </div>
+    </div>`,
+    className: '',
+    iconSize: [140, 60],
+    iconAnchor: [70, 46],
+    popupAnchor: [0, -46],
+  });
+}
+
+function createHospitalIcon(name) {
+  const shortName = name ? (name.length > 20 ? name.substring(0,20) + '...' : name) : 'Hospital';
+  return L.divIcon({
+    html: `<div style="display:flex;flex-direction:column;align-items:center;opacity:0.75;filter:grayscale(30%);">
+      <div style="background:#EF4444;color:white;width:18px;height:18px;border-radius:4px;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 3px rgba(0,0,0,0.15);border:1.5px solid white;">
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M2 12h20"/></svg>
+      </div>
+      <div style="margin-top:2px;font-size:9px;font-weight:600;color:#991B1B;text-shadow:1px 1px 0 rgba(255,255,255,0.9), -1px -1px 0 rgba(255,255,255,0.9), 1px -1px 0 rgba(255,255,255,0.9), -1px 1px 0 rgba(255,255,255,0.9);white-space:nowrap;letter-spacing:-0.2px;">
+        ${shortName}
+      </div>
+    </div>`,
+    className: '',
+    iconSize: [120, 32],
+    iconAnchor: [60, 18],
+    popupAnchor: [0, -18],
   });
 }
 
 function FitBounds({ positions }) {
   const map = useMap();
+  const hasFittedRef = useRef('');
+
+  const validPositions = positions.filter(p => p && p[0] && p[1]);
+  const serialized = JSON.stringify(validPositions);
+
   useEffect(() => {
-    if (positions.length > 0) {
-      map.fitBounds(L.latLngBounds(positions.map(p => [p[1], p[0]])), { padding: [40, 40] });
-    }
-  }, [positions, map]);
+    if (validPositions.length === 0) return;
+    if (hasFittedRef.current === serialized) return;
+
+    const timer = setTimeout(() => {
+      try {
+        const bounds = L.latLngBounds(validPositions);
+        if (bounds.isValid()) {
+          map.fitBounds(bounds, { padding: [40, 40], maxZoom: 15 });
+          hasFittedRef.current = serialized;
+        }
+      } catch(e) {}
+    }, 200);
+    return () => clearTimeout(timer);
+  }, [serialized, map]);
+
   return null;
+}
+
+function MapResizer() {
+  const map = useMap();
+  useEffect(() => {
+    const observer = new ResizeObserver(() => {
+      map.invalidateSize();
+    });
+    observer.observe(map.getContainer());
+    return () => observer.disconnect();
+  }, [map]);
+  return null;
+}
+
+function HospitalsLayer() {
+  const map = useMap();
+  const [hospitals, setHospitals] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  const fetchHospitals = async () => {
+    if (map.getZoom() < 12) return;
+    const bounds = map.getBounds();
+    const query = `
+      [out:json];
+      (
+        node["amenity"="hospital"](${bounds.getSouth()},${bounds.getWest()},${bounds.getNorth()},${bounds.getEast()});
+        node["amenity"="clinic"](${bounds.getSouth()},${bounds.getWest()},${bounds.getNorth()},${bounds.getEast()});
+      );
+      out 20;
+    `;
+    try {
+      setLoading(true);
+      const res = await fetch(`https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`);
+      const data = await res.json();
+      setHospitals(data.elements || []);
+    } catch(e) {} finally {
+      setLoading(false);
+    }
+  };
+
+  useMapEvents({
+    moveend: () => {
+      // Debounce fetch
+      setTimeout(fetchHospitals, 500);
+    },
+  });
+
+  useEffect(() => {
+    fetchHospitals();
+  }, []);
+
+  return hospitals.map(h => (
+    <Marker key={h.id} position={[h.lat, h.lon]} icon={createHospitalIcon(h.tags?.name)} zIndexOffset={-1000}>
+      <Popup>
+        <div className="min-w-[150px]">
+          <div className="font-bold text-gray-900 mb-1">{h.tags?.name || 'Medical Center'}</div>
+          <div className="text-xs text-gray-500 mb-2">{h.tags?.amenity === 'hospital' ? 'Hospital' : 'Clinic'}</div>
+          <a
+            href={`https://maps.google.com/?q=${h.lat},${h.lon}`}
+            target="_blank"
+            rel="noreferrer"
+            className="block text-center text-xs bg-red-500 text-white py-1.5 rounded font-semibold hover:bg-red-600 transition-colors"
+          >
+            🗺️ Directions
+          </a>
+        </div>
+      </Popup>
+    </Marker>
+  ));
 }
 
 function FlyTo({ coords }) {
   const map = useMap();
   useEffect(() => {
-    if (coords) map.flyTo([coords.lat, coords.lng], 13, { animate: true, duration: 1.2 });
+    if (coords && coords.lat) {
+      const timer = setTimeout(() => {
+        try {
+          map.flyTo([coords.lat, coords.lng], 14, { animate: true, duration: 1.2 });
+        } catch(e) {}
+      }, 200);
+      return () => clearTimeout(timer);
+    }
   }, [coords, map]);
   return null;
 }
@@ -92,6 +246,8 @@ export default function MapViewPage() {
   const [cityError, setCityError] = useState('');
   const [locating, setLocating] = useState(false);
 
+  const { lang, t } = useLang();
+  
   // Try GPS first on load
   useEffect(() => {
     tryGPS();
@@ -103,7 +259,7 @@ export default function MapViewPage() {
     navigator.geolocation.getCurrentPosition(
       ({ coords }) => {
         setUserLocation({ lat: coords.latitude, lng: coords.longitude });
-        setLocationLabel(`📍 Live GPS`);
+        setLocationLabel(lang === 'hi' ? `📍 लाइव GPS` : `📍 Live GPS`);
         setLocating(false);
         setShowPanel(false);
       },
@@ -123,31 +279,38 @@ export default function MapViewPage() {
       setCityError('');
     } else if (/^\d{6}$/.test(key)) {
       setUserLocation({ lat: 20.5937, lng: 78.9629 });
-      setLocationLabel(`📍 Pincode: ${name}`);
+      setLocationLabel(lang === 'hi' ? `📍 पिनकोड: ${name}` : `📍 Pincode: ${name}`);
       setShowPanel(false);
     } else {
-      setCityError('City not found. Try: Delhi, Mumbai, Faridabad, Noida...');
+      setCityError(lang === 'hi' ? 'शहर नहीं मिला। प्रयास करें: Delhi, Mumbai...' : 'City not found. Try: Delhi, Mumbai, Faridabad, Noida...');
     }
   };
 
+  // Convex data fetching
+  const rawResults = useQuery(api.medicines.search, query ? { query } : "skip");
+  const rawPharmacies = useQuery(api.pharmacies.getPharmacies);
+
   useEffect(() => {
-    if (!userLocation) return;
     if (query) {
-      setLoading(true);
-      searchMedicine(query, userLocation.lat, userLocation.lng)
-        .then(data => setResults(data.results || []))
-        .catch(() => {})
-        .finally(() => setLoading(false));
+      if (rawResults !== undefined) {
+        setResults(rawResults);
+        setLoading(false);
+      } else {
+        setLoading(true);
+      }
     } else {
-      getPharmacies().then(setPharmacies).catch(() => {});
+      if (rawPharmacies !== undefined) {
+        setPharmacies(rawPharmacies);
+        setLoading(false);
+      }
     }
-  }, [query, userLocation]);
+  }, [query, rawResults, rawPharmacies]);
 
   const mapItems = (query ? results : pharmacies.map((p, i) => ({
-    _id: `pharmacy_${i}`, pharmacy: p, price: null, inStock: p.isOpen, isCheapest: false,
+    _id: `pharmacy_${i}`, pharmacy: p, price: null, inStock: p.isOpen !== false, isCheapest: false,
   }))).map(item => {
-    if (!userLocation || !item.pharmacy?.location?.coordinates) return item;
-    const [lng, lat] = item.pharmacy.location.coordinates;
+    if (!userLocation || !item.pharmacy?.location?.lat || !item.pharmacy?.location?.lng) return item;
+    const { lat, lng } = item.pharmacy.location;
     return { ...item, liveDistance: calcDistance(userLocation.lat, userLocation.lng, lat, lng) };
   }).sort((a, b) => (parseFloat(a.liveDistance)||999) - (parseFloat(b.liveDistance)||999));
 
@@ -156,8 +319,8 @@ export default function MapViewPage() {
       {/* Header */}
       <div className="bg-white border-b border-gray-100 px-4 py-3 flex items-center justify-between gap-3 flex-wrap">
         <div className="flex items-center gap-2">
-          <h1 className="font-semibold text-gray-900">{query ? `Map: ${query}` : 'Pharmacy Map'}</h1>
-          {results.length > 0 && <span className="badge-blue">{results.length} found</span>}
+          <h1 className="font-semibold text-gray-900">{query ? (lang === 'hi' ? `मैप: ${query}` : `Map: ${query}`) : (lang === 'hi' ? 'फार्मेसी मैप' : 'Pharmacy Map')}</h1>
+          {results.length > 0 && <span className="badge-blue">{results.length} {lang === 'hi' ? 'मिले' : 'found'}</span>}
         </div>
         <div className="flex items-center gap-2">
           <button
@@ -167,14 +330,14 @@ export default function MapViewPage() {
             }`}
           >
             {locating ? (
-              <><svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg> Detecting...</>
+              <><svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg> {t('locating') || 'Detecting...'}</>
             ) : userLocation ? (
               <><span className="w-2 h-2 rounded-full bg-emerald-500"></span>{locationLabel} ✎</>
             ) : (
-              <><span className="w-2 h-2 rounded-full bg-red-400"></span>Set Your Location</>
+              <><span className="w-2 h-2 rounded-full bg-red-400"></span>{lang === 'hi' ? 'अपनी लोकेशन सेट करें' : 'Set Your Location'}</>
             )}
           </button>
-          {query && <Link to={`/results?q=${encodeURIComponent(query)}`} className="btn-secondary text-sm !py-1.5">← List</Link>}
+          {query && <Link to={`/results?q=${encodeURIComponent(query)}`} className="btn-secondary text-sm !py-1.5">← {lang === 'hi' ? 'सूची' : 'List'}</Link>}
         </div>
       </div>
 
@@ -182,8 +345,8 @@ export default function MapViewPage() {
       {showPanel && (
         <div className="bg-blue-50 border-b border-blue-100 px-4 py-4">
           <div className="max-w-lg mx-auto">
-            <p className="text-sm font-bold text-gray-800 mb-1">📍 Set Your Location</p>
-            <p className="text-xs text-gray-500 mb-3">GPS blocked? Type your city or pincode below.</p>
+            <p className="text-sm font-bold text-gray-800 mb-1">📍 {lang === 'hi' ? 'अपनी लोकेशन सेट करें' : 'Set Your Location'}</p>
+            <p className="text-xs text-gray-500 mb-3">{lang === 'hi' ? 'GPS ब्लॉक है? अपना शहर या पिनकोड नीचे टाइप करें।' : 'GPS blocked? Type your city or pincode below.'}</p>
 
             {/* Quick city buttons */}
             <div className="flex flex-wrap gap-2 mb-3">
@@ -205,12 +368,12 @@ export default function MapViewPage() {
                 value={cityInput}
                 onChange={e => { setCityInput(e.target.value); setCityError(''); }}
                 onKeyDown={e => e.key === 'Enter' && setCity(cityInput)}
-                placeholder="Type city name or 6-digit pincode..."
+                placeholder={lang === 'hi' ? 'शहर का नाम या 6 अंकों का पिनकोड टाइप करें...' : 'Type city name or 6-digit pincode...'}
                 className="input-field flex-1 !py-2 text-sm"
                 autoFocus
               />
               <button onClick={() => setCity(cityInput)} className="btn-primary text-sm !py-2 !px-4">
-                Set
+                {lang === 'hi' ? 'सेट करें' : 'Set'}
               </button>
             </div>
             {cityError && <p className="text-xs text-red-500 mt-1">{cityError}</p>}
@@ -220,7 +383,7 @@ export default function MapViewPage() {
               <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
               </svg>
-              Try GPS again
+              {lang === 'hi' ? 'फिर से GPS का प्रयास करें' : 'Try GPS again'}
             </button>
           </div>
         </div>
@@ -232,10 +395,10 @@ export default function MapViewPage() {
           {!userLocation ? (
             <div className="p-6 text-center">
               <div className="text-4xl mb-3">📍</div>
-              <p className="text-sm font-semibold text-gray-700 mb-1">Location not set</p>
-              <p className="text-xs text-gray-500 mb-3">Set your location above to see pharmacy distances</p>
+              <p className="text-sm font-semibold text-gray-700 mb-1">{lang === 'hi' ? 'लोकेशन सेट नहीं है' : 'Location not set'}</p>
+              <p className="text-xs text-gray-500 mb-3">{lang === 'hi' ? 'फार्मेसी की दूरी देखने के लिए ऊपर अपनी लोकेशन सेट करें' : 'Set your location above to see pharmacy distances'}</p>
               <button onClick={() => setShowPanel(true)} className="btn-primary text-sm !py-2">
-                Set Location
+                {lang === 'hi' ? 'लोकेशन सेट करें' : 'Set Location'}
               </button>
             </div>
           ) : loading ? (
@@ -245,8 +408,8 @@ export default function MapViewPage() {
           ) : mapItems.length === 0 ? (
             <div className="p-6 text-center text-gray-500 text-sm">
               <div className="text-3xl mb-2">🗺️</div>
-              <p>Search a medicine to see prices on the map.</p>
-              <Link to="/" className="btn-primary text-sm mt-3 inline-block">Search Medicine</Link>
+              <p>{lang === 'hi' ? 'मैप पर कीमतें देखने के लिए कोई दवा खोजें।' : 'Search a medicine to see prices on the map.'}</p>
+              <Link to="/" className="btn-primary text-sm mt-3 inline-block">{lang === 'hi' ? 'दवा खोजें' : 'Search Medicine'}</Link>
             </div>
           ) : (
             <div className="p-2 space-y-2">
@@ -255,10 +418,10 @@ export default function MapViewPage() {
                 <div className="flex items-center gap-2">
                   <span className="w-3 h-3 rounded-full bg-[#2E7DFF] border-2 border-white shadow flex-shrink-0"></span>
                   <div>
-                    <p className="text-xs font-bold text-[#2E7DFF]">Your Location</p>
+                    <p className="text-xs font-bold text-[#2E7DFF]">{lang === 'hi' ? 'आपकी लोकेशन' : 'Your Location'}</p>
                     <p className="text-xs text-gray-500">{locationLabel}</p>
                   </div>
-                  <button onClick={() => setShowPanel(true)} className="ml-auto text-xs text-gray-400 hover:text-gray-600">Change</button>
+                  <button onClick={() => setShowPanel(true)} className="ml-auto text-xs text-gray-400 hover:text-gray-600">{lang === 'hi' ? 'बदलें' : 'Change'}</button>
                 </div>
               </div>
 
@@ -271,7 +434,7 @@ export default function MapViewPage() {
                   }`}
                 >
                   <div className="flex justify-between items-start">
-                    <span className="font-medium text-sm text-gray-900 leading-tight">{item.pharmacy?.name}</span>
+                    <span className="font-medium text-sm text-gray-900 leading-tight">{item.pharmacy?.pharmacyName || item.pharmacy?.name}</span>
                     {item.price && (
                       <span className={`font-bold text-sm ${item.isCheapest ? 'text-[#00C2A8]' : 'text-gray-900'}`}>₹{item.price}</span>
                     )}
@@ -279,9 +442,9 @@ export default function MapViewPage() {
                   <p className="text-xs text-gray-500 mt-0.5 line-clamp-1">{item.pharmacy?.address}</p>
                   <div className="flex items-center gap-2 mt-1.5">
                     <span className={`w-1.5 h-1.5 rounded-full ${item.inStock ? 'bg-emerald-500' : 'bg-red-400'}`}></span>
-                    <span className="text-xs text-gray-500">{item.inStock ? 'In Stock' : 'Out of Stock'}</span>
+                    <span className="text-xs text-gray-500">{item.inStock ? t('inStock') || 'In Stock' : t('outOfStock') || 'Out of Stock'}</span>
                     {item.liveDistance && (
-                      <span className="text-xs font-bold text-[#2E7DFF] ml-auto">📍 {item.liveDistance} km</span>
+                      <span className="text-xs font-bold text-[#2E7DFF] ml-auto">📍 {item.liveDistance} {lang === 'hi' ? 'किमी' : 'km'}</span>
                     )}
                   </div>
                 </button>
@@ -291,24 +454,27 @@ export default function MapViewPage() {
         </div>
 
         {/* Map */}
-        <div className="flex-1">
+        <div className="flex-1 h-full w-full relative">
           <MapContainer
-            center={userLocation ? [userLocation.lat, userLocation.lng] : [20.5937, 78.9629]}
-            zoom={userLocation ? 13 : 5}
+            key="medimap-map"
+            center={[20.5937, 78.9629]}
+            zoom={5}
             style={{ height: '100%', width: '100%' }}
           >
             <TileLayer
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              attribution='&copy; <a href="https://carto.com/">CartoDB</a>'
+              url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
             />
+            <MapResizer />
+            <HospitalsLayer />
             {userLocation && <FlyTo coords={userLocation} />}
             {mapItems.length > 0 && (
-              <FitBounds positions={mapItems.map(r => r.pharmacy?.location?.coordinates || [78.9629, 20.5937])} />
+              <FitBounds positions={mapItems.map(r => r.pharmacy?.location?.lat ? [r.pharmacy.location.lat, r.pharmacy.location.lng] : null)} />
             )}
 
             {/* User location marker */}
             {userLocation && (
-              <Marker position={[userLocation.lat, userLocation.lng]} icon={createUserIcon()}>
+              <Marker position={[userLocation.lat, userLocation.lng]} icon={createUserIcon()} zIndexOffset={2000}>
                 <Popup>
                   <div className="text-center min-w-[140px]">
                     <p className="font-bold text-[#2E7DFF] text-sm">📍 Your Location</p>
@@ -320,18 +486,19 @@ export default function MapViewPage() {
 
             {/* Pharmacy markers */}
             {mapItems.map((item, i) => {
-              const coords = item.pharmacy?.location?.coordinates;
-              if (!coords) return null;
-              const [lng, lat] = coords;
+              if (!item.pharmacy?.location?.lat || !item.pharmacy?.location?.lng) return null;
+              const { lat, lng } = item.pharmacy.location;
+              const name = item.pharmacy?.pharmacyName || item.pharmacy?.name;
               return (
                 <Marker
                   key={item._id || i}
                   position={[lat, lng]}
-                  icon={item.price ? createPriceIcon(item.price, item.isCheapest) : new L.Icon.Default()}
+                  icon={item.price ? createPriceIcon(item.price, item.isCheapest, name) : createPharmacyIcon(name)}
+                  zIndexOffset={1000}
                 >
                   <Popup>
                     <div className="min-w-[200px]">
-                      <div className="font-bold text-gray-900 mb-1">{item.pharmacy?.name}</div>
+                      <div className="font-bold text-gray-900 mb-1">{item.pharmacy?.pharmacyName || item.pharmacy?.name}</div>
                       <div className="text-xs text-gray-500 mb-2">{item.pharmacy?.address}</div>
                       {item.price && (
                         <div className={`text-xl font-bold mb-1 ${item.isCheapest ? 'text-[#00C2A8]' : 'text-gray-900'}`}>

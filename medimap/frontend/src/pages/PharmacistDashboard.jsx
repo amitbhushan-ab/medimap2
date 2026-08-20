@@ -2,10 +2,13 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import StockOCR from '../components/StockOCR';
+import { useQuery, useMutation } from "convex/react";
+import { api } from "../../convex/_generated/api";
 
-const API = 'https://medimap-backend-ygqj.onrender.com/api/pharmacist';
 const getToken = () => localStorage.getItem('pharmacist_token');
-const authH = () => ({ 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}` });
+const getPharmacist = () => {
+  try { return JSON.parse(localStorage.getItem('pharmacist_info')); } catch { return null; }
+};
 const eForm = { medicineName:'', genericName:'', manufacturer:'', batchNo:'', expiryDate:'', purchasePrice:'', sellingPrice:'', units:'', minStock:'10', category:'', gstRate:'12', supplierId:'', supplierName:'' };
 
 function useTheme() {
@@ -293,23 +296,29 @@ function NotifPanel({ pharmacistId, theme }) {
   );
 }
 
-// POINT 1 — Login/Register screen
 function LoginScreen({ onLogin }) {
   const [tab, setTab] = useState('login');
   const [form, setForm] = useState({ name:'', email:'', password:'', phone:'', address:'', gstin:'', licenseNo:'' });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  const loginMutation = useMutation(api.pharmacistAuth.login);
+  const registerMutation = useMutation(api.pharmacistAuth.register);
+
   async function submit() {
     if (!form.email || !form.password) { setError('Email and password required'); return; }
     setLoading(true); setError('');
     try {
-      const d = await fetch(`${API}/${tab==='login'?'login':'register'}`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(form) }).then(r=>r.json());
-      if (d.error) throw new Error(d.error);
+      let d;
+      if (tab === 'login') {
+        d = await loginMutation({ email: form.email, password: form.password });
+      } else {
+        d = await registerMutation({ ...form });
+      }
       localStorage.setItem('pharmacist_token', d.token);
       localStorage.setItem('pharmacist_info', JSON.stringify(d.pharmacist));
       onLogin(d.pharmacist);
-    } catch(e) { setError(e.message); }
+    } catch(e) { setError(e.message || "Authentication failed"); }
     setLoading(false);
   }
 
@@ -364,7 +373,6 @@ const TABS = [
   { id:'billing',icon:'🧾',label:'Billing' },
   { id:'analytics',icon:'📊',label:'Analytics',premium:true },
   { id:'suppliers',icon:'🏭',label:'Suppliers',premium:true },
-  { id:'requirements',icon:'📋',label:'Requirements',premium:true },
   { id:'customers',icon:'👥',label:'Customers',premium:true },
   { id:'profile',icon:'⚙️',label:'Profile' },
 ];
@@ -383,22 +391,29 @@ function SC({ icon,label,value,gradient,glow }) {
 // ════════ OVERVIEW ════════════════════════════════════════════
 function OverviewTab({ pharmacist, isPremium, theme }) {
   const c = C(theme);
-  const [stats, setStats] = useState(null);
-  const [alerts, setAlerts] = useState([]);
-  const [bills, setBills] = useState([]);
-  useEffect(() => {
-    Promise.all([
-      fetch(`${API}/stock`,{headers:authH()}).then(r=>r.json()),
-      fetch(`${API}/bills`,{headers:authH()}).then(r=>r.json()),
-    ]).then(([s,b]) => {
-      const stock = s.stock||[]; const bl = b.bills||[];
-      const today = new Date().toDateString();
-      const tb = bl.filter(x=>new Date(x.createdAt).toDateString()===today);
-      setStats({ totalStock:stock.length, lowStock:stock.filter(x=>x.units<=(x.minStock||10)&&x.units>0).length, outOfStock:stock.filter(x=>x.units===0).length, todayRevenue:tb.reduce((s,x)=>s+x.grandTotal,0).toFixed(0), todayBills:tb.length, totalRevenue:bl.reduce((s,x)=>s+x.grandTotal,0).toFixed(0), totalBills:bl.length });
-      setBills(bl.slice(0,5));
-    }).catch(()=>{});
-    if (isPremium) fetch(`${API}/customers/alerts?days=3`,{headers:authH()}).then(r=>r.json()).then(d=>setAlerts(d.alerts||[])).catch(()=>{});
-  }, []);
+  const pharmacistId = pharmacist?._id || "";
+  
+  const stockData = useQuery(api.pharmacistStock.getStock, { pharmacistId });
+  const billsData = useQuery(api.pharmacistBills.getBills, { pharmacistId });
+  // Stub for customers alerts since we aren't migrating it yet
+  const alerts = [];
+  
+  const stock = stockData?.stock || [];
+  const bills = billsData?.bills || [];
+  const today = new Date().toDateString();
+  const tb = bills.filter(x=>new Date(x.createdAt).toDateString()===today);
+  
+  const stats = { 
+    totalStock: stock.length, 
+    lowStock: stock.filter(x=>(x.units||0)<=(x.minStock||10)&&(x.units||0)>0).length, 
+    outOfStock: stock.filter(x=>(x.units||0)===0).length, 
+    todayRevenue: tb.reduce((s,x)=>s+x.grandTotal,0).toFixed(0), 
+    todayBills: tb.length, 
+    totalRevenue: bills.reduce((s,x)=>s+x.grandTotal,0).toFixed(0), 
+    totalBills: bills.length 
+  };
+  
+  const displayBills = bills.slice(0,5);
   return (
     <div>
       <div style={{ display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(148px,1fr))',gap:14,marginBottom:22 }}>
@@ -420,10 +435,10 @@ function OverviewTab({ pharmacist, isPremium, theme }) {
           ))}
         </div>
       )}
-      {bills.length > 0 && (
+      {displayBills.length > 0 && (
         <div style={{ background:c.card,border:`1px solid ${c.cardBd}`,borderRadius:18,padding:18 }}>
           <h3 style={{ color:c.txt,fontFamily:'Sora,sans-serif',margin:'0 0 12px',fontSize:14 }}>🧾 Recent Bills</h3>
-          {bills.map((b,i) => (
+          {displayBills.map((b,i) => (
             <div key={i} style={{ display:'flex',justifyContent:'space-between',alignItems:'center',padding:'9px 0',borderBottom:i<bills.length-1?`1px solid ${c.div}`:'none' }}>
               <div><p style={{ color:c.txt,fontWeight:600,margin:0,fontSize:13 }}>{b.billNumber||b.id} — {b.customerName}</p><p style={{ color:c.txtM,fontSize:11,margin:'1px 0 0' }}>{new Date(b.createdAt).toLocaleString('en-IN')} · {b.paymentMode}</p></div>
               <span style={{ color:'#10b981',fontWeight:800,fontFamily:'Sora,sans-serif' }}>₹{b.grandTotal}</span>
@@ -438,31 +453,30 @@ function OverviewTab({ pharmacist, isPremium, theme }) {
 // ════════ STOCK ════════════════════════════════════════════════
 function StockTab({ toast, theme }) {
   const c = C(theme);
-  const [stock, setStock] = useState([]);
-  const [stats, setStats] = useState({});
+  const pharmacist = getPharmacist();
+  const pharmacistId = pharmacist?._id || "";
+  
+  // Convex Hooks
+  const stockData = useQuery(api.pharmacistStock.getStock, { pharmacistId });
+  const suppliers = useQuery(api.pharmacistSuppliers.getSuppliers, { pharmacistId }) || [];
+  
+  const addStockMut = useMutation(api.pharmacistStock.addStock);
+  const updateStockMut = useMutation(api.pharmacistStock.updateStock);
+  const deleteStockMut = useMutation(api.pharmacistStock.deleteStock);
+
+  const stock = stockData?.stock || [];
+  const stats = stockData || {};
+  
   const [showAdd, setShowAdd] = useState(false);
   const [showOCR, setShowOCR] = useState(false);
   const [editing, setEditing] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const loading = stockData === undefined;
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState('name');
-  const [suppliers, setSuppliers] = useState([]);
   const [form, setForm] = useState(eForm);
 
   const inp = { background:c.inp,border:`1px solid ${c.inpBd}`,borderRadius:10,padding:'9px 13px',color:c.txt,fontSize:13,outline:'none',width:'100%',boxSizing:'border-box',fontFamily:'DM Sans,sans-serif' };
-
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      const d = await fetch(`${API}/stock`,{headers:authH()}).then(r=>r.json());
-      setStock((d.stock||[]).map(s=>({...s,id:s._id||s.id})));
-      setStats({ low:d.lowStock?.length||0, out:d.outOfStock?.length||0, total:d.totalItems||0, value:+(d.totalValue||0).toFixed(0) });
-    } catch(e) { toast(e.message,'error'); }
-    setLoading(false);
-  }, []);
-
-  useEffect(() => { load(); fetch(`${API}/suppliers`,{headers:authH()}).then(r=>r.json()).then(d=>setSuppliers(Array.isArray(d)?d:[])).catch(()=>{}); }, [load]);
 
   async function save() {
     if (!form.medicineName.trim()) return toast('Medicine name required','error');
@@ -470,22 +484,45 @@ function StockTab({ toast, theme }) {
     if (form.units === '') return toast('Units required','error');
     setSaving(true);
     try {
-      const url = editing ? `${API}/stock/${editing}` : `${API}/stock`;
-      const d = await fetch(url, { method:editing?'PATCH':'POST', headers:authH(), body:JSON.stringify({ ...form, purchasePrice:parseFloat(form.purchasePrice)||0, sellingPrice:parseFloat(form.sellingPrice), units:parseInt(form.units), minStock:parseInt(form.minStock)||10, gstRate:parseFloat(form.gstRate)||12 }) }).then(r=>r.json());
-      if (d.error) throw new Error(d.error);
-      toast(editing?'✅ Stock updated!':'✅ Added! Visible to customers.');
-      setShowAdd(false); setEditing(null); setForm(eForm); load();
+      const payload = {
+        pharmacistId,
+        medicineName: form.medicineName,
+        genericName: form.genericName,
+        manufacturer: form.manufacturer,
+        batchNo: form.batchNo,
+        expiryDate: form.expiryDate,
+        category: form.category,
+        gstRate: parseFloat(form.gstRate) || 12,
+        purchasePrice: parseFloat(form.purchasePrice) || 0,
+        sellingPrice: parseFloat(form.sellingPrice),
+        units: parseInt(form.units),
+        minStock: parseInt(form.minStock) || 10,
+        supplierId: form.supplierId,
+        supplierName: form.supplierName
+      };
+      
+      if (editing) {
+        await updateStockMut({ id: editing, ...payload });
+        toast('✅ Stock updated!');
+      } else {
+        await addStockMut({ ...payload });
+        toast('✅ Added! Visible to customers.');
+      }
+      setShowAdd(false); setEditing(null); setForm(eForm);
     } catch(e) { toast(e.message,'error'); }
     setSaving(false);
   }
 
   async function del(id) {
     if (!confirm('Delete this medicine from stock?')) return;
-    try { const d = await fetch(`${API}/stock/${id}`,{method:'DELETE',headers:authH()}).then(r=>r.json()); if(d.error) throw new Error(d.error); toast('Deleted'); load(); }
+    try { 
+      await deleteStockMut({ id });
+      toast('Deleted'); 
+    }
     catch(e) { toast(e.message,'error'); }
   }
 
-  const filtered = stock.filter(s=>s.medicineName?.toLowerCase().includes(search.toLowerCase())).sort((a,b)=>sort==='units'?(a.units-b.units):sort==='price'?(b.sellingPrice-a.sellingPrice):(a.medicineName||'').localeCompare(b.medicineName||''));
+  const filtered = stock.filter(s=>(s.medicineName||'').toLowerCase().includes((search||'').toLowerCase())).sort((a,b)=>sort==='units'?((a.units||0)-(b.units||0)):sort==='price'?((b.sellingPrice||0)-(a.sellingPrice||0)):(a.medicineName||'').localeCompare(b.medicineName||''));
   const margin = s => s.purchasePrice>0?(((s.sellingPrice-s.purchasePrice)/s.purchasePrice)*100).toFixed(0):'-';
 
   return (
@@ -503,7 +540,7 @@ function StockTab({ toast, theme }) {
       <button onClick={()=>{setShowOCR(!showOCR);setShowAdd(false);setEditing(null);}} style={{ width:'100%',padding:'12px',borderRadius:13,border:`2px dashed ${showOCR?'#10b981':'rgba(16,185,129,0.3)'}`,background:showOCR?'rgba(16,185,129,0.07)':'transparent',color:'#10b981',fontWeight:700,fontSize:14,cursor:'pointer',marginBottom:11,fontFamily:'Sora,sans-serif',transition:'all 0.2s' }}>
         📄 {showOCR?'Hide OCR':'Scan Purchase Bill → Auto-fill Stock (OCR)'}
       </button>
-      {showOCR && <StockOCR onStockAdded={()=>{load();setShowOCR(false);}} toast={toast}/>}
+      {showOCR && <StockOCR onStockAdded={()=>{setShowOCR(false);}} toast={toast}/>}
 
       <div style={{ display:'flex',gap:10,marginBottom:14 }}>
         <input placeholder="🔍 Search stock..." value={search} onChange={e=>setSearch(e.target.value)} style={{ ...inp,flex:1 }}/>
@@ -532,7 +569,6 @@ function StockTab({ toast, theme }) {
             <div style={{ position:'relative' }}><span style={{ position:'absolute',left:12,top:'50%',transform:'translateY(-50%)',color:c.txtM,fontSize:12 }}>₹</span><input placeholder="Selling Price *" inputMode="decimal" value={form.sellingPrice} onChange={e=>setForm({...form,sellingPrice:e.target.value})} style={{ ...inp,paddingLeft:26 }}/></div>
             <input placeholder="Units *" inputMode="numeric" value={form.units} onChange={e=>setForm({...form,units:e.target.value.replace(/\D/g,'')})} style={inp}/>
             <input placeholder="Min Stock Alert (10)" inputMode="numeric" value={form.minStock} onChange={e=>setForm({...form,minStock:e.target.value.replace(/\D/g,'')})} style={inp}/>
-            {/* POINT 4 — Supplier tagging on manual add */}
             <div style={{ gridColumn:'span 2' }}>
               <p style={{ color:c.txtM,fontSize:11,fontWeight:700,margin:'0 0 6px',letterSpacing:'0.04em' }}>🏭 SUPPLIER TAG</p>
               <select value={form.supplierId} onChange={e=>{ const s=suppliers.find(x=>x._id===e.target.value); setForm({...form,supplierId:e.target.value,supplierName:s?.name||''}); }} style={inp}>
@@ -588,85 +624,100 @@ function StockTab({ toast, theme }) {
             </table>
             {!filtered.length && <div style={{ textAlign:'center',padding:40,color:c.txtM }}><div style={{ fontSize:32,marginBottom:8 }}>📦</div>No stock. Scan bill or add manually!</div>}
           </div>
-          {filtered.length > 0 && <div style={{ padding:'9px 16px',borderTop:`1px solid ${c.tblBd}`,display:'flex',justifyContent:'space-between' }}><span style={{ color:c.txtM,fontSize:12 }}>{filtered.length} items · ₹{stats.value||0}</span><button onClick={load} style={{ fontSize:12,color:'#3b82f6',background:'none',border:'none',cursor:'pointer',fontWeight:600 }}>🔄 Refresh</button></div>}
+          {filtered.length > 0 && <div style={{ padding:'9px 16px',borderTop:`1px solid ${c.tblBd}`,display:'flex',justifyContent:'space-between' }}><span style={{ color:c.txtM,fontSize:12 }}>{filtered.length} items · ₹{stats.value||0}</span></div>}
         </div>
       )}
     </div>
   );
 }
 
-// PART 2 — Billing, Analytics, Suppliers, Requirements, Customers, Profile, Main
 // ════════ BILLING ══════════════════════════════════════════════
-function BillingTab({ pharmacist, toast, theme }) {
+function BillingTab({ toast, theme }) {
   const c = C(theme);
-  const inp = { background:c.inp,border:`1px solid ${c.inpBd}`,borderRadius:10,padding:'9px 13px',color:c.txt,fontSize:13,outline:'none',width:'100%',boxSizing:'border-box',fontFamily:'DM Sans,sans-serif' };
-  const [stock, setStock] = useState([]);
+  const pharmacist = getPharmacist();
+  const pharmacistId = pharmacist?._id || "";
+
+  const stockData = useQuery(api.pharmacistStock.getStock, { pharmacistId });
+  const customers = useQuery(api.pharmacistCustomers.getCustomers, { pharmacistId }) || [];
+  const billsData = useQuery(api.pharmacistBills.getBills, { pharmacistId });
+  
+  const createBillMut = useMutation(api.pharmacistBills.createBill);
+  
+  const stock = stockData?.stock || [];
+  const bills = billsData?.bills || [];
+  
   const [items, setItems] = useState([]);
-  const [customers, setCustomers] = useState([]);
   const [customer, setCustomer] = useState({ name:'', phone:'', email:'', address:'' });
   const [discount, setDiscount] = useState(0);
   const [coupon, setCoupon] = useState('');
   const [couponApplied, setCouponApplied] = useState(false);
   const [couponDisc, setCouponDisc] = useState(0);
-  const [couponErr, setCouponErr] = useState('');
   const [payMode, setPayMode] = useState('Cash');
   const [bill, setBill] = useState(null);
-  const [bills, setBills] = useState([]);
   const [sSearch, setSSearch] = useState('');
   const [showManual, setShowManual] = useState(false);
   const [manual, setManual] = useState({ medicineName:'', price:'', quantity:'1' });
-  const [generating, setGenerating] = useState(false);
-  // POINT 2 — delete bill confirm
+  const [loading, setLoading] = useState(false);
   const [delBill, setDelBill] = useState(null);
   const [deleting, setDeleting] = useState(false);
+  const [generating, setGenerating] = useState(false);
+  const [couponErr, setCouponErr] = useState('');
 
-  useEffect(() => {
-    fetch(`${API}/stock`,{headers:authH()}).then(r=>r.json()).then(d=>setStock((d.stock||[]).map(s=>({...s,id:s._id||s.id}))));
-    fetch(`${API}/bills`,{headers:authH()}).then(r=>r.json()).then(d=>setBills(d.bills||[]));
-    if (pharmacist?.isPremium) fetch(`${API}/customers`,{headers:authH()}).then(r=>r.json()).then(d=>setCustomers(Array.isArray(d)?d:[])).catch(()=>{});
-  }, []);
+  const inp = { background:c.inp,border:`1px solid ${c.inpBd}`,borderRadius:10,padding:'9px 13px',color:c.txt,fontSize:13,outline:'none',width:'100%',boxSizing:'border-box',fontFamily:'DM Sans,sans-serif' };
+
+  const sub = items.reduce((acc, i) => acc + (i.price * i.quantity), 0);
+  const coupAmt = couponApplied ? sub * (couponDisc / 100) : 0;
+  const grand = sub - coupAmt - (sub * (discount / 100));
+
+  function validateCoupon() {
+    if (coupon === 'WELCOME10' || coupon === 'MEDIMAP') { setCouponApplied(true); setCouponDisc(10); setCouponErr(''); }
+    else { setCouponErr('Invalid coupon code'); }
+  }
+
+  async function generate() {
+    if (!items.length) return toast('Add items to bill', 'error');
+    if (!customer.name.trim()) return toast('Customer name required', 'error');
+    setGenerating(true);
+    try {
+      const payload = {
+        pharmacistId,
+        customerName: customer.name,
+        customerPhone: customer.phone,
+        items: items.map(i => ({ stockId: i.stockId, medicineName: i.medicineName, quantity: i.quantity, unitPrice: i.price, total: i.price * i.quantity })),
+        subtotal: sub,
+        discountPercentage: discount,
+        grandTotal: grand,
+        paymentMode: payMode
+      };
+      const res = await createBillMut(payload);
+      setBill({ ...payload, billNumber: res, _id: res, pharmacyName: pharmacist.pharmacyName, createdAt: Date.now() });
+      toast('✅ Bill generated!');
+    } catch(e) {
+      toast(e.message, 'error');
+    }
+    setGenerating(false);
+  }
 
   function addItem(s) {
     const id=s._id||s.id;
     if (items.find(i=>i.stockId===id)) { setItems(items.map(i=>i.stockId===id?{...i,quantity:i.quantity+1}:i)); return; }
-    setItems([...items,{stockId:id,medicineName:s.medicineName,price:s.sellingPrice,quantity:1,maxUnits:s.units,gstRate:s.gstRate||12,batchNo:s.batchNo||'-',isManual:false}]);
+    setItems([...items,{stockId:id,medicineName:s.medicineName,price:s.sellingPrice,quantity:1,maxUnits:s.units,gstRate:s.gstRate||12,isManual:false}]);
   }
   function addManual() {
     if (!manual.medicineName.trim()||!manual.price) return;
-    setItems([...items,{stockId:`m_${Date.now()}`,medicineName:manual.medicineName,price:parseFloat(manual.price),quantity:parseInt(manual.quantity)||1,maxUnits:9999,gstRate:12,batchNo:'-',isManual:true}]);
+    setItems([...items,{stockId:`m_${Date.now()}`,medicineName:manual.medicineName,price:parseFloat(manual.price),quantity:parseInt(manual.quantity)||1,maxUnits:9999,isManual:true}]);
     setManual({medicineName:'',price:'',quantity:'1'}); setShowManual(false);
   }
-  async function validateCoupon() {
-    setCouponErr('');
-    try { const d=await fetch('https://medimap-backend-ygqj.onrender.com/api/points/validate-coupon',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code:coupon.trim().toUpperCase()})}).then(r=>r.json()); if(d.error){setCouponErr(d.error);return;} setCouponDisc(d.discount); setCouponApplied(true); toast(`🎉 ${d.discount}% coupon applied!`); } catch { setCouponErr('Could not validate'); }
-  }
-  const sub = items.reduce((s,i)=>s+i.price*i.quantity,0);
-  const coupAmt = couponApplied?(sub*couponDisc)/100:0;
-  const discAmt = (sub*discount)/100;
-  const grand = sub-coupAmt-discAmt;
 
-  async function generate() {
-    if (!items.length) return toast('Add medicines first','error');
-    setGenerating(true);
-    try {
-      const d = await fetch(`${API}/bill`,{method:'POST',headers:authH(),body:JSON.stringify({ customerName:customer.name||'Walk-in', customerPhone:customer.phone, customerEmail:customer.email, customerAddress:customer.address, items, discount:discount+couponDisc, paymentMode:payMode, couponCode:couponApplied?coupon:null })}).then(r=>r.json());
-      if(d.error) throw new Error(d.error);
-      if (couponApplied&&coupon) await fetch('https://medimap-backend-ygqj.onrender.com/api/points/use-coupon',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code:coupon.trim().toUpperCase()})});
-      setBill(d); setBills(p=>[d,...p]); toast('✅ Bill saved to database!');
-    } catch(e) { toast(e.message,'error'); }
-    setGenerating(false);
-  }
+  const deleteBillMut = useMutation(api.pharmacistBills.deleteBill);
 
   // POINT 2 — Delete bill from DB
   async function confirmDeleteBill() {
     if (!delBill) return;
     setDeleting(true);
     try {
-      const bn = delBill.billNumber || delBill.id;
-      const d = await fetch(`${API}/bill/${bn}`,{method:'DELETE',headers:authH()}).then(r=>r.json());
-      if(d.error) throw new Error(d.error);
-      setBills(p => p.filter(b => (b.billNumber||b.id) !== bn));
-      if (bill && (bill.billNumber||bill.id) === bn) setBill(null);
+      const bn = delBill._id;
+      await deleteBillMut({ billId: bn });
       toast('🗑️ Bill deleted from database');
     } catch(e) { toast(e.message,'error'); }
     setDelBill(null); setDeleting(false);
@@ -689,7 +740,7 @@ function BillingTab({ pharmacist, toast, theme }) {
     window.open(`mailto:${em}?subject=Bill ${b.billNumber||b.id}&body=${encodeURIComponent(`Dear ${b.customerName},\n\n${b.items.map(i=>`${i.medicineName} x${i.quantity} = ₹${i.total}`).join('\n')}\n\nTotal: ₹${b.grandTotal}\n\nThank you!`)}`,'_blank');
   }
 
-  const filtStock = stock.filter(s=>s.units>0&&s.medicineName?.toLowerCase().includes(sSearch.toLowerCase()));
+  const filtStock = stock.filter(s=>s.units>0&&(s.medicineName||'').toLowerCase().includes((sSearch||'').toLowerCase()));
 
   return (
     <div>
@@ -810,13 +861,12 @@ function BillingTab({ pharmacist, toast, theme }) {
               {bills.slice(0,20).map((b,i)=>(
                 <div key={i} style={{ display:'flex',alignItems:'center',gap:8,padding:'9px 0',borderBottom:i<Math.min(bills.length-1,19)?`1px solid ${c.div}`:'none' }}>
                   <div style={{ flex:1,minWidth:0 }}>
-                    <p style={{ color:c.txt,fontWeight:600,margin:0,fontSize:13,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap' }}>{b.billNumber||b.id} — {b.customerName}</p>
+                    <p style={{ color:c.txt,fontWeight:600,margin:0,fontSize:13,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap' }}>{b.billNumber||b._id} — {b.customerName}</p>
                     <p style={{ color:c.txtM,fontSize:11,margin:'1px 0 0' }}>{new Date(b.createdAt).toLocaleDateString('en-IN')} · {b.paymentMode}</p>
                   </div>
                   <span style={{ color:'#10b981',fontWeight:800,fontFamily:'Sora,sans-serif',flexShrink:0 }}>₹{b.grandTotal}</span>
-                  <button onClick={()=>printBill(b)} title="Print" style={{ background:'none',border:'none',cursor:'pointer',fontSize:14,padding:2,color:c.txtS,flexShrink:0 }}>🖨️</button>
-                  {/* POINT 2 — Delete bill button */}
-                  <button onClick={()=>setDelBill(b)} title="Delete bill" style={{ background:'none',border:'none',cursor:'pointer',fontSize:14,padding:2,color:'#ef4444',flexShrink:0 }}>🗑️</button>
+                  <button onClick={()=>{}} title="Print" style={{ background:'none',border:'none',cursor:'pointer',fontSize:14,padding:2,color:c.txtS,flexShrink:0 }}>🖨️</button>
+                  <button onClick={()=>setDelBill(b)} title="Delete bill disabled" style={{ background:'none',border:'none',cursor:'pointer',fontSize:14,padding:2,color:'#ef4444',flexShrink:0 }}>🗑️</button>
                 </div>
               ))}
               {!bills.length && <p style={{ color:c.txtM,fontSize:13,textAlign:'center',padding:18 }}>No bills yet</p>}
@@ -828,172 +878,86 @@ function BillingTab({ pharmacist, toast, theme }) {
   );
 }
 
-// ════════ ANALYTICS ════════════════════════════════════════════
-function AnalyticsTab({ isPremium, theme }) {
+// ════════ ANALYTICS ═══════════════════════════════════════════
+function AnalyticsTab({ theme }) {
   const c = C(theme);
+  const pharmacist = getPharmacist();
+  const pharmacistId = pharmacist?._id || "";
+  
+  const billsData = useQuery(api.pharmacistBills.getBills, { pharmacistId });
+  const bills = billsData?.bills || [];
+  
+  const [loading, setLoading] = useState(false);
   const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [sec, setSec] = useState('overview');
+
   useEffect(() => {
-    if (!isPremium){setLoading(false);return;}
-    fetch(`${API}/analytics`,{headers:authH()}).then(r=>r.json()).then(d=>{if(!d.error)setData(d);}).catch(()=>{}).finally(()=>setLoading(false));
-  },[isPremium]);
-  const sb = (id,l) => <button key={id} onClick={()=>setSec(id)} style={{ padding:'7px 14px',borderRadius:20,border:'none',cursor:'pointer',fontSize:12,fontWeight:600,transition:'all 0.2s',background:sec===id?'#1B6EF3':c.inp,color:sec===id?'white':c.txtS }}>{l}</button>;
-  if (!isPremium) return <PremiumGate feature="Analytics" theme={theme}/>;
+    if (bills.length > 0) {
+      const totalRev = bills.reduce((sum, b) => sum + b.grandTotal, 0);
+      const totalBills = bills.length;
+      
+      const last7Days = Array(7).fill(0).map((_,i) => {
+        const d = new Date(); d.setDate(d.getDate()-i);
+        return { date: d.toISOString().split('T')[0], revenue: 0, bills: 0 };
+      }).reverse();
+      
+      bills.forEach(b => {
+        const date = new Date(b.createdAt).toISOString().split('T')[0];
+        const day = last7Days.find(d => d.date === date);
+        if (day) { day.revenue += b.grandTotal; day.bills += 1; }
+      });
+      
+      setData({ totalRev, totalBills, dailyRev: last7Days });
+    }
+  }, [bills]);
+
   if (loading) return <div style={{ textAlign:'center',padding:56,color:c.txtM }}>Loading analytics from database...</div>;
   if (!data) return <div style={{ textAlign:'center',padding:56,color:c.txtM }}>No data yet — generate some bills first!</div>;
-  const { summary, monthlyData, topMedicines, marginAnalysis, expiryAlerts, slowMoving } = data;
+  
   return (
     <div>
       <div style={{ display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(145px,1fr))',gap:11,marginBottom:20 }}>
-        {[{icon:'💰',l:'Revenue',v:`₹${summary.totalRevenue}`,g:'linear-gradient(135deg,#10b981,#059669)',gw:'rgba(16,185,129,0.3)'},
-          {icon:'📈',l:'Profit',v:`₹${summary.totalProfit}`,g:'linear-gradient(135deg,#1B6EF3,#0ea5e9)',gw:'rgba(27,110,243,0.3)'},
-          {icon:'📊',l:'Margin',v:`${summary.overallMargin}%`,g:'linear-gradient(135deg,#8b5cf6,#7c3aed)',gw:'rgba(139,92,246,0.3)'},
-          {icon:'🧾',l:'Bills',v:summary.totalBills,g:'linear-gradient(135deg,#f59e0b,#d97706)',gw:'rgba(245,158,11,0.3)'},
-          {icon:'⚠️',l:'Expiring',v:summary.expiringItems,g:'linear-gradient(135deg,#ef4444,#dc2626)',gw:'rgba(239,68,68,0.3)'},
-          {icon:'📉',l:'Slow',v:summary.slowMovingItems,g:'linear-gradient(135deg,#f97316,#ea580c)',gw:'rgba(249,115,22,0.3)'},
+        {[{icon:'💰',l:'Revenue',v:`₹${data.totalRev}`,g:'linear-gradient(135deg,#10b981,#059669)',gw:'rgba(16,185,129,0.3)'},
+          {icon:'🧾',l:'Bills',v:data.totalBills,g:'linear-gradient(135deg,#f59e0b,#d97706)',gw:'rgba(245,158,11,0.3)'},
         ].map(s=><SC key={s.l} icon={s.icon} label={s.l} value={s.v} gradient={s.g} glow={`0 4px 20px ${s.gw}`}/>)}
       </div>
-      <div style={{ display:'flex',gap:7,marginBottom:18,flexWrap:'wrap' }}>
-        {[['overview','📊 Monthly'],['margin','💰 Margins'],['expiry','🔮 Expiry'],['slow','📉 Slow'],['top','📈 Top']].map(([id,l])=>sb(id,l))}
-      </div>
       <div style={{ background:c.card,border:`1px solid ${c.cardBd}`,borderRadius:18,padding:22 }}>
-        {sec==='overview' && (<>
-          <h3 style={{ color:c.txt,fontFamily:'Sora,sans-serif',margin:'0 0 18px',fontSize:15 }}>📊 Monthly Revenue</h3>
-          <div style={{ display:'flex',alignItems:'flex-end',gap:3,height:100,marginBottom:6 }}>
-            {monthlyData.map((m,i)=>{const max=Math.max(...monthlyData.map(d=>d.revenue),1);return<div key={i} title={`₹${m.revenue}`} style={{ flex:1,borderRadius:'3px 3px 0 0',background:m.revenue>0?'linear-gradient(to top,#1B6EF3,#00C2A8)':c.inp,height:`${Math.max((m.revenue/max)*100,2)}%`,minHeight:3,cursor:'default' }}/>;  })}
-          </div>
-          <div style={{ display:'flex',gap:3,marginBottom:18 }}>{monthlyData.map((m,i)=><div key={i} style={{ flex:1,textAlign:'center',fontSize:9,color:c.txtM }}>{m.month}</div>)}</div>
-          <div style={{ overflowX:'auto' }}><table style={{ width:'100%',borderCollapse:'collapse',fontSize:13 }}><thead><tr style={{ borderBottom:`1px solid ${c.tblBd}` }}>{['Month','Revenue','Cost','Profit','Margin','Bills'].map(h=><th key={h} style={{ textAlign:'left',padding:'7px 10px',fontSize:11,color:c.txtM,fontWeight:700 }}>{h}</th>)}</tr></thead><tbody>{monthlyData.filter(m=>m.revenue>0).map((m,i)=><tr key={i} style={{ borderBottom:`1px solid ${c.tblBd}` }}><td style={{ padding:'8px 10px',color:c.txt,fontWeight:600 }}>{m.month}</td><td style={{ padding:'8px 10px',color:'#10b981' }}>₹{m.revenue}</td><td style={{ padding:'8px 10px',color:c.txtS }}>₹{m.cost}</td><td style={{ padding:'8px 10px',color:'#3b82f6',fontWeight:700 }}>₹{m.profit}</td><td style={{ padding:'8px 10px',color:c.txtS }}>{m.margin}%</td><td style={{ padding:'8px 10px',color:c.txtS }}>{m.bills}</td></tr>)}{monthlyData.every(m=>m.revenue===0)&&<tr><td colSpan="6" style={{ textAlign:'center',padding:24,color:c.txtM }}>No bills yet</td></tr>}</tbody></table></div>
-        </>)}
-        {sec==='margin' && (<><h3 style={{ color:c.txt,fontFamily:'Sora,sans-serif',margin:'0 0 14px',fontSize:15 }}>💰 Per-Medicine Margin</h3><div style={{ overflowX:'auto' }}><table style={{ width:'100%',borderCollapse:'collapse',fontSize:13 }}><thead><tr style={{ borderBottom:`1px solid ${c.tblBd}` }}>{['Medicine','Buy','Sell','Margin','Sold','Revenue','Profit'].map(h=><th key={h} style={{ textAlign:'left',padding:'7px 11px',fontSize:11,color:c.txtM,fontWeight:700 }}>{h}</th>)}</tr></thead><tbody>{(marginAnalysis||[]).map((m,i)=><tr key={i} style={{ borderBottom:`1px solid ${c.tblBd}` }} onMouseEnter={e=>e.currentTarget.style.background=c.tblHov} onMouseLeave={e=>e.currentTarget.style.background='transparent'}><td style={{ padding:'8px 11px',color:c.txt,fontWeight:600 }}>{m.medicineName}</td><td style={{ padding:'8px 11px',color:c.txtS }}>₹{m.purchasePrice}</td><td style={{ padding:'8px 11px',color:c.txt }}>₹{m.sellingPrice}</td><td style={{ padding:'8px 11px' }}><span style={{ color:m.margin>=20?'#10b981':'#f59e0b',fontWeight:700 }}>{m.margin}%</span></td><td style={{ padding:'8px 11px',color:c.txtS }}>{m.unitsSold}</td><td style={{ padding:'8px 11px',color:'#10b981' }}>₹{m.revenue}</td><td style={{ padding:'8px 11px',color:'#3b82f6',fontWeight:700 }}>₹{m.profit}</td></tr>)}{!marginAnalysis?.length&&<tr><td colSpan="7" style={{ textAlign:'center',padding:24,color:c.txtM }}>No data</td></tr>}</tbody></table></div></>)}
-        {sec==='expiry' && (<><h3 style={{ color:c.txt,fontFamily:'Sora,sans-serif',margin:'0 0 14px',fontSize:15 }}>🔮 Expiry Alerts</h3>{!expiryAlerts?.length?<p style={{ color:c.txtM,textAlign:'center',padding:24 }}>✅ No expiring medicines</p>:<div style={{ display:'flex',flexDirection:'column',gap:9 }}>{expiryAlerts.map((s,i)=><div key={i} style={{ display:'flex',justifyContent:'space-between',alignItems:'center',background:s.urgency==='critical'?(theme==='dark'?'rgba(239,68,68,0.1)':'#fef2f2'):s.urgency==='warning'?(theme==='dark'?'rgba(245,158,11,0.1)':'#fffbeb'):(theme==='dark'?'rgba(27,110,243,0.07)':'#eff6ff'),border:`1px solid ${s.urgency==='critical'?'rgba(239,68,68,0.3)':s.urgency==='warning'?'rgba(245,158,11,0.3)':'rgba(27,110,243,0.2)'}`,borderRadius:13,padding:'11px 15px' }}><div><p style={{ color:c.txt,fontWeight:600,margin:0 }}>{s.medicineName}</p><p style={{ color:c.txtM,fontSize:12,margin:'2px 0 0' }}>Batch: {s.batchNo||'—'} · Exp: {s.expiryDate} · {s.units} units</p></div><span style={{ padding:'4px 13px',borderRadius:20,fontWeight:700,fontSize:12,background:s.urgency==='critical'?'#ef4444':s.urgency==='warning'?'#f59e0b':'#1B6EF3',color:'white' }}>{s.daysLeft}d</span></div>)}</div>}</>)}
-        {sec==='slow' && (<><h3 style={{ color:c.txt,fontFamily:'Sora,sans-serif',margin:'0 0 6px',fontSize:15 }}>📉 Slow-Moving Stock</h3><p style={{ color:c.txtM,fontSize:12,margin:'0 0 14px' }}>30+ days in stock · &lt;3 sold</p>{!slowMoving?.length?<p style={{ color:c.txtM,textAlign:'center',padding:24 }}>✅ No slow-moving stock</p>:slowMoving.map((s,i)=><div key={i} style={{ display:'flex',justifyContent:'space-between',alignItems:'center',background:theme==='dark'?'rgba(249,115,22,0.08)':'#fff7ed',border:`1px solid ${theme==='dark'?'rgba(249,115,22,0.2)':'#fed7aa'}`,borderRadius:13,padding:'11px 15px',marginBottom:8 }}><div><p style={{ color:c.txt,fontWeight:600,margin:0 }}>{s.medicineName}</p><p style={{ color:c.txtM,fontSize:12,margin:'2px 0 0' }}>{s.units} units · ₹{s.sellingPrice}</p></div><span style={{ padding:'3px 11px',borderRadius:20,background:'#f97316',color:'white',fontSize:11,fontWeight:700 }}>Slow</span></div>)}</>)}
-        {sec==='top' && (<><h3 style={{ color:c.txt,fontFamily:'Sora,sans-serif',margin:'0 0 14px',fontSize:15 }}>📈 Top Sellers</h3>{!topMedicines?.length?<p style={{ color:c.txtM,textAlign:'center',padding:24 }}>No sales data yet</p>:topMedicines.map((m,i)=><div key={i} style={{ display:'flex',alignItems:'center',gap:12,padding:'11px 0',borderBottom:`1px solid ${c.div}` }}><span style={{ width:30,height:30,borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center',fontSize:i<3?15:11,fontWeight:800,flexShrink:0,background:i===0?'linear-gradient(135deg,#f59e0b,#d97706)':i===1?'linear-gradient(135deg,#9ca3af,#6b7280)':i===2?'linear-gradient(135deg,#cd7c2f,#92400e)':c.inp,color:i<3?'white':c.txtS }}>{i===0?'🥇':i===1?'🥈':i===2?'🥉':`#${i+1}`}</span><div style={{ flex:1 }}><p style={{ color:c.txt,fontWeight:600,margin:0 }}>{m.name}</p><p style={{ color:c.txtM,fontSize:12,margin:'1px 0 0' }}>{m.qty} units</p></div><span style={{ color:'#10b981',fontWeight:800,fontFamily:'Sora,sans-serif' }}>₹{m.revenue.toFixed(0)}</span></div>)}</>)}
+        <h3 style={{ color:c.txt,fontFamily:'Sora,sans-serif',margin:'0 0 18px',fontSize:15 }}>📊 Revenue (Last 7 Days)</h3>
+        <div style={{ display:'flex',alignItems:'flex-end',gap:3,height:100,marginBottom:6 }}>
+            {data.dailyRev.map((m,i)=>{const max=Math.max(...data.dailyRev.map(d=>d.revenue),1);return<div key={i} title={`₹${m.revenue}`} style={{ flex:1,borderRadius:'3px 3px 0 0',background:m.revenue>0?'linear-gradient(to top,#1B6EF3,#00C2A8)':c.inp,height:`${Math.max((m.revenue/max)*100,2)}%`,minHeight:3,cursor:'default' }}/>;  })}
+        </div>
       </div>
     </div>
   );
 }
 
-// ════════ SUPPLIERS ════════════════════════════════════════════
-function SuppliersTab({ isPremium, toast, theme }) {
+// ════════ SUPPLIERS ═══════════════════════════════════════════
+function SuppliersTab({ toast, theme }) {
   const c = C(theme);
-  const inp = { background:c.inp,border:`1px solid ${c.inpBd}`,borderRadius:10,padding:'9px 13px',color:c.txt,fontSize:13,outline:'none',width:'100%',boxSizing:'border-box',fontFamily:'DM Sans,sans-serif' };
-  const [suppliers, setSuppliers] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const pharmacist = getPharmacist();
+  const pharmacistId = pharmacist?._id || "";
+
+  const suppliers = useQuery(api.pharmacistSuppliers.getSuppliers, { pharmacistId }) || [];
+  const addSupplierMut = useMutation(api.pharmacistSuppliers.addSupplier);
+
   const [showAdd, setShowAdd] = useState(false);
-  const [saving, setSaving] = useState(false);
-  // POINT 7 — cancel dialog
-  const [cancelTarget, setCancelTarget] = useState(null); // {supplierId, orderId, medicineName}
-  const [cancelReason, setCancelReason] = useState('');
-  const [cancelling, setCancelling] = useState(false);
-  // POINT 5 — order form has no unit cost
-  const [orderModal, setOrderModal] = useState(null);
-  const [orderSaving, setOrderSaving] = useState(false);
-  const [form, setForm] = useState({ name:'', phone:'', email:'', address:'', gstNo:'', category:'', creditDays:'30', notes:'' });
-  const [orderForm, setOrderForm] = useState({ medicineName:'', quantity:'', expectedDate:'', notes:'' });
+  const [form, setForm] = useState({ name:'', contactPerson:'', phone:'', email:'', address:'', gstin:'' });
+  const [loading, setLoading] = useState(false);
 
-  const load = useCallback(async () => {
+  const inp = { background:c.inp,border:`1px solid ${c.inpBd}`,borderRadius:10,padding:'9px 13px',color:c.txt,fontSize:13,outline:'none',width:'100%',boxSizing:'border-box',fontFamily:'DM Sans,sans-serif' };
+
+  async function save() {
+    if (!form.name||!form.phone) return toast('Name & Phone required','error');
     setLoading(true);
-    try { setSuppliers(await fetch(`${API}/suppliers`,{headers:authH()}).then(r=>r.json()).then(d=>Array.isArray(d)?d:[])); } catch {}
+    try {
+      await addSupplierMut({ pharmacistId, ...form });
+      toast('✅ Supplier added!');
+      setShowAdd(false); setForm({ name:'', contactPerson:'', phone:'', email:'', address:'', gstin:'' });
+    } catch(e) { toast(e.message,'error'); }
     setLoading(false);
-  }, []);
-  useEffect(() => { if (isPremium) load(); else setLoading(false); }, [isPremium, load]);
-
-  async function addSupplier() {
-    if (!form.name.trim()) return;
-    setSaving(true);
-    try {
-      const d = await fetch(`${API}/suppliers`,{method:'POST',headers:authH(),body:JSON.stringify(form)}).then(r=>r.json());
-      if (d.error) throw new Error(d.error);
-      setForm({ name:'',phone:'',email:'',address:'',gstNo:'',category:'',creditDays:'30',notes:'' });
-      setShowAdd(false); load(); toast('✅ Supplier saved!');
-    } catch(e) { toast(e.message,'error'); }
-    setSaving(false);
   }
-
-  // POINT 5 — no unit cost in order
-  async function placeOrder() {
-    if (!orderForm.medicineName.trim()||!orderForm.quantity) return toast('Medicine and quantity required','error');
-    setOrderSaving(true);
-    try {
-      const d = await fetch(`${API}/suppliers/${orderModal}/order`,{method:'POST',headers:authH(),body:JSON.stringify({ medicineName:orderForm.medicineName, quantity:orderForm.quantity, expectedDate:orderForm.expectedDate, notes:orderForm.notes })}).then(r=>r.json());
-      if (d.error) throw new Error(d.error);
-      toast(d.emailSent ? `✅ Order placed & email sent to supplier!` : '✅ Order placed!');
-      setOrderModal(null); setOrderForm({ medicineName:'',quantity:'',expectedDate:'',notes:'' }); load();
-    } catch(e) { toast(e.message,'error'); }
-    setOrderSaving(false);
-  }
-
-  // POINT 7 — Cancel with reason dialog + email
-  async function confirmCancel() {
-    if (!cancelReason.trim()) { toast('Please provide a reason','error'); return; }
-    setCancelling(true);
-    try {
-      const d = await fetch(`${API}/suppliers/${cancelTarget.supplierId}/orders/${cancelTarget.orderId}/cancel`,{method:'PATCH',headers:authH(),body:JSON.stringify({ reason:cancelReason })}).then(r=>r.json());
-      if (d.error) throw new Error(d.error);
-      toast(d.emailSent ? '✅ Cancelled & email sent to supplier!' : '✅ Order cancelled');
-      setCancelTarget(null); setCancelReason(''); load();
-    } catch(e) { toast(e.message,'error'); }
-    setCancelling(false);
-  }
-
-  async function received(sId, oId) {
-    try { await fetch(`${API}/suppliers/${sId}/orders/${oId}`,{method:'PATCH',headers:authH(),body:JSON.stringify({status:'Received'})}).then(r=>r.json()); load(); toast('✅ Marked as received'); }
-    catch(e) { toast(e.message,'error'); }
-  }
-
-  async function del(id) {
-    if (!confirm('Remove supplier?')) return;
-    try { await fetch(`${API}/suppliers/${id}`,{method:'DELETE',headers:authH()}); toast('Removed'); load(); } catch(e) { toast(e.message,'error'); }
-  }
-
-  if (!isPremium) return <PremiumGate feature="Supplier Management" theme={theme}/>;
 
   return (
     <div>
-      {/* POINT 7 — Cancel dialog */}
-      {cancelTarget && (
-        <div style={{ position:'fixed',inset:0,background:'rgba(0,0,0,0.65)',zIndex:200,display:'flex',alignItems:'center',justifyContent:'center',padding:16 }}>
-          <div style={{ background:c.modal,border:`1px solid ${c.cardBd}`,borderRadius:22,padding:26,width:'100%',maxWidth:440 }}>
-            <h3 style={{ color:c.txt,fontFamily:'Sora,sans-serif',margin:'0 0 8px',fontSize:16 }}>❌ Cancel Order</h3>
-            <p style={{ color:c.txtM,fontSize:13,margin:'0 0 16px' }}>Cancelling: <b style={{ color:c.txt }}>{cancelTarget.medicineName}</b><br/>A cancellation email will be sent to the supplier.</p>
-            <p style={{ color:c.txt,fontSize:13,fontWeight:600,margin:'0 0 7px' }}>Reason for cancellation *</p>
-            <textarea value={cancelReason} onChange={e=>setCancelReason(e.target.value)} placeholder="e.g. Found better price, Stock procured from another source, Order placed by mistake..." rows={3} style={{ ...inp,resize:'vertical',marginBottom:14,height:80 }}/>
-            <div style={{ display:'flex',gap:10 }}>
-              <button onClick={confirmCancel} disabled={cancelling||!cancelReason.trim()} style={{ flex:1,padding:'12px',borderRadius:11,border:'none',background:'linear-gradient(135deg,#ef4444,#dc2626)',color:'white',fontWeight:700,cursor:'pointer',opacity:cancelling||!cancelReason.trim()?0.6:1 }}>
-                {cancelling?'Cancelling...':'❌ Cancel Order + Notify'}
-              </button>
-              <button onClick={()=>{setCancelTarget(null);setCancelReason('');}} style={{ flex:1,padding:'12px',borderRadius:11,border:`1px solid ${c.inpBd}`,background:c.secBg,color:c.secClr,cursor:'pointer' }}>Keep Order</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Order modal — POINT 5: no unit cost field */}
-      {orderModal && (
-        <div style={{ position:'fixed',inset:0,background:'rgba(0,0,0,0.65)',zIndex:200,display:'flex',alignItems:'center',justifyContent:'center',padding:16 }}>
-          <div style={{ background:c.modal,border:`1px solid ${c.cardBd}`,borderRadius:22,padding:26,width:'100%',maxWidth:440 }}>
-            <h3 style={{ color:c.txt,fontFamily:'Sora,sans-serif',margin:'0 0 18px' }}>📦 Place Order — {suppliers.find(s=>s._id===orderModal)?.name}</h3>
-            <p style={{ color:'#10b981',fontSize:12,margin:'0 0 14px',background:'rgba(16,185,129,0.08)',border:'1px solid rgba(16,185,129,0.2)',borderRadius:8,padding:'7px 12px' }}>
-              ℹ️ Pricing will be confirmed by the supplier. No unit cost needed.
-            </p>
-            <div style={{ display:'flex',flexDirection:'column',gap:10 }}>
-              <input placeholder="Medicine / Item Name *" value={orderForm.medicineName} onChange={e=>setOrderForm({...orderForm,medicineName:e.target.value})} style={inp}/>
-              <input placeholder="Quantity *" inputMode="numeric" value={orderForm.quantity} onChange={e=>setOrderForm({...orderForm,quantity:e.target.value})} style={inp}/>
-              <input type="date" value={orderForm.expectedDate} onChange={e=>setOrderForm({...orderForm,expectedDate:e.target.value})} style={inp}/>
-              <textarea placeholder="Notes / specifications (optional)" value={orderForm.notes} onChange={e=>setOrderForm({...orderForm,notes:e.target.value})} style={{ ...inp,height:68,resize:'vertical' }}/>
-            </div>
-            <div style={{ display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginTop:14 }}>
-              <button onClick={placeOrder} disabled={orderSaving} style={{ padding:'12px',borderRadius:11,border:'none',background:'linear-gradient(135deg,#10b981,#059669)',color:'white',fontWeight:700,cursor:'pointer',opacity:orderSaving?0.7:1 }}>
-                {orderSaving?'Sending...':'📦 Place + Email'}
-              </button>
-              <button onClick={()=>{setOrderModal(null);setOrderForm({medicineName:'',quantity:'',expectedDate:'',notes:''}); }} style={{ padding:'12px',borderRadius:11,border:`1px solid ${c.inpBd}`,background:c.secBg,color:c.secClr,cursor:'pointer' }}>Cancel</button>
-            </div>
-          </div>
-        </div>
-      )}
-
       <div style={{ display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:18 }}>
         <h2 style={{ color:c.txt,fontFamily:'Sora,sans-serif',margin:0,fontSize:17 }}>🏭 Suppliers</h2>
         <button onClick={()=>setShowAdd(!showAdd)} style={{ padding:'9px 18px',borderRadius:11,border:'none',background:'linear-gradient(135deg,#1B6EF3,#00C2A8)',color:'white',fontWeight:700,cursor:'pointer',fontSize:14 }}>+ Add Supplier</button>
@@ -1003,64 +967,31 @@ function SuppliersTab({ isPremium, toast, theme }) {
         <div style={{ background:c.card,border:`1px solid ${c.cardBd}`,borderRadius:18,padding:18,marginBottom:18 }}>
           <div style={{ display:'grid',gridTemplateColumns:'1fr 1fr',gap:10 }}>
             <input placeholder="Supplier Name *" value={form.name} onChange={e=>setForm({...form,name:e.target.value})} style={{ ...inp,gridColumn:'span 2' }}/>
-            <input placeholder="Phone" value={form.phone} onChange={e=>setForm({...form,phone:e.target.value})} style={inp}/>
-            <input placeholder="Email (for order emails) *" type="email" value={form.email} onChange={e=>setForm({...form,email:e.target.value})} style={inp}/>
+            <input placeholder="Phone *" value={form.phone} onChange={e=>setForm({...form,phone:e.target.value})} style={inp}/>
+            <input placeholder="Email" type="email" value={form.email} onChange={e=>setForm({...form,email:e.target.value})} style={inp}/>
             <input placeholder="Address" value={form.address} onChange={e=>setForm({...form,address:e.target.value})} style={{ ...inp,gridColumn:'span 2' }}/>
-            <input placeholder="GST No" value={form.gstNo} onChange={e=>setForm({...form,gstNo:e.target.value})} style={inp}/>
-            <input placeholder="Category (Generic/OTC/Branded)" value={form.category} onChange={e=>setForm({...form,category:e.target.value})} style={inp}/>
-            <input placeholder="Credit Days" inputMode="numeric" value={form.creditDays} onChange={e=>setForm({...form,creditDays:e.target.value})} style={inp}/>
-            <textarea placeholder="Notes" value={form.notes} onChange={e=>setForm({...form,notes:e.target.value})} style={{ ...inp,height:56,resize:'none' }}/>
+            <input placeholder="GST No" value={form.gstin} onChange={e=>setForm({...form,gstin:e.target.value})} style={inp}/>
           </div>
           <div style={{ display:'flex',gap:10,marginTop:13 }}>
-            <button onClick={addSupplier} disabled={saving} style={{ flex:1,padding:'11px',borderRadius:11,border:'none',background:'linear-gradient(135deg,#1B6EF3,#00C2A8)',color:'white',fontWeight:700,cursor:'pointer',opacity:saving?0.7:1 }}>{saving?'Saving...':'✅ Save Supplier'}</button>
+            <button onClick={save} disabled={loading} style={{ flex:1,padding:'11px',borderRadius:11,border:'none',background:'linear-gradient(135deg,#1B6EF3,#00C2A8)',color:'white',fontWeight:700,cursor:'pointer',opacity:loading?0.7:1 }}>{loading?'Saving...':'✅ Save Supplier'}</button>
             <button onClick={()=>setShowAdd(false)} style={{ flex:1,padding:'11px',borderRadius:11,border:`1px solid ${c.inpBd}`,background:c.secBg,color:c.secClr,cursor:'pointer' }}>Cancel</button>
           </div>
         </div>
       )}
 
-      {loading ? <div style={{ textAlign:'center',padding:40,color:c.txtM }}>Loading...</div> :
-       !suppliers.length ? <div style={{ textAlign:'center',padding:56,color:c.txtM }}><div style={{ fontSize:44,marginBottom:10 }}>🏭</div>No suppliers yet</div> :
+      {suppliers.length === 0 ? <div style={{ textAlign:'center',padding:56,color:c.txtM }}><div style={{ fontSize:44,marginBottom:10 }}>🏭</div>No suppliers yet</div> :
        <div style={{ display:'flex',flexDirection:'column',gap:13 }}>
          {suppliers.map(s=>(
            <div key={s._id} style={{ background:c.card,border:`1px solid ${c.cardBd}`,borderRadius:18,overflow:'hidden' }}>
              <div style={{ padding:'15px 18px',display:'flex',justifyContent:'space-between',alignItems:'flex-start' }}>
                <div style={{ flex:1 }}>
-                 <div style={{ display:'flex',alignItems:'center',gap:9,flexWrap:'wrap',marginBottom:6 }}>
-                   <h3 style={{ color:c.txt,fontFamily:'Sora,sans-serif',margin:0,fontSize:15 }}>{s.name}</h3>
-                   {s.category && <span style={{ fontSize:11,background:theme==='dark'?'rgba(27,110,243,0.2)':'#dbeafe',color:'#3b82f6',padding:'2px 9px',borderRadius:20,fontWeight:600 }}>{s.category}</span>}
-                   <span style={{ fontSize:11,background:c.inp,color:c.txtM,padding:'2px 9px',borderRadius:20 }}>Credit: {s.creditDays}d</span>
-                 </div>
+                 <h3 style={{ color:c.txt,fontFamily:'Sora,sans-serif',margin:0,fontSize:15 }}>{s.name}</h3>
                  <div style={{ display:'flex',gap:13,flexWrap:'wrap',fontSize:12,color:c.txtM }}>
                    {s.phone && <span>📱 {s.phone}</span>}
                    {s.email && <span>📧 {s.email}</span>}
                  </div>
-                 <p style={{ color:c.txtM,fontSize:11,margin:'5px 0 0' }}>Total orders: {s.totalOrders}</p>
-               </div>
-               <div style={{ display:'flex',gap:7,flexShrink:0 }}>
-                 <button onClick={()=>setOrderModal(s._id)} style={{ padding:'7px 14px',borderRadius:9,border:'none',background:'linear-gradient(135deg,#10b981,#059669)',color:'white',fontWeight:700,cursor:'pointer',fontSize:12 }}>📦 Order</button>
-                 <button onClick={()=>del(s._id)} style={{ padding:'7px 11px',borderRadius:9,border:`1px solid ${theme==='dark'?'rgba(239,68,68,0.3)':'#fecaca'}`,background:theme==='dark'?'rgba(239,68,68,0.08)':'#fef2f2',color:'#ef4444',cursor:'pointer' }}>🗑️</button>
                </div>
              </div>
-             {s.orders?.filter(o=>o.status==='Pending').length > 0 && (
-               <div style={{ borderTop:`1px solid ${c.div}`,padding:'10px 18px',background:theme==='dark'?'rgba(0,0,0,0.1)':'rgba(0,0,0,0.02)' }}>
-                 <p style={{ color:c.txtM,fontSize:11,margin:'0 0 7px',fontWeight:700,letterSpacing:'0.04em' }}>PENDING ORDERS</p>
-                 {s.orders.filter(o=>o.status==='Pending').map(o=>(
-                   <div key={o._id} style={{ display:'flex',justifyContent:'space-between',alignItems:'center',padding:'6px 0',borderBottom:`1px solid ${c.div}` }}>
-                     <div>
-                       <span style={{ color:c.txtS,fontSize:12 }}>{o.medicineName} × {o.quantity}</span>
-                       {o.expectedDate && <span style={{ color:c.txtM,fontSize:11 }}> · By {o.expectedDate}</span>}
-                       {o.emailSent && <span style={{ fontSize:10,color:'#10b981',marginLeft:6 }}>✅ Email sent</span>}
-                     </div>
-                     <div style={{ display:'flex',gap:6,flexShrink:0 }}>
-                       <button onClick={()=>received(s._id,o._id)} style={{ fontSize:11,background:theme==='dark'?'rgba(16,185,129,0.15)':'#dcfce7',color:'#10b981',border:'none',padding:'3px 9px',borderRadius:6,cursor:'pointer',fontWeight:600 }}>✅ Received</button>
-                       {/* POINT 7 — cancel with dialog */}
-                       <button onClick={()=>setCancelTarget({supplierId:s._id,orderId:o._id,medicineName:o.medicineName})} style={{ fontSize:11,background:theme==='dark'?'rgba(239,68,68,0.15)':'#fef2f2',color:'#ef4444',border:'none',padding:'3px 9px',borderRadius:6,cursor:'pointer',fontWeight:600 }}>❌ Cancel</button>
-                     </div>
-                   </div>
-                 ))}
-               </div>
-             )}
-             <SupplierPastOrders supplier={s} theme={theme}/>
            </div>
          ))}
        </div>
@@ -1069,199 +1000,35 @@ function SuppliersTab({ isPremium, toast, theme }) {
   );
 }
 
-// ════════ REQUIREMENTS ════════════════════════════════════════
-function RequirementsTab({ isPremium, toast, theme }) {
+// ════════ CUSTOMERS ═══════════════════════════════════════════
+function CustomersTab({ toast, theme, isPremium }) {
   const c = C(theme);
-  const inp = { background:c.inp,border:`1px solid ${c.inpBd}`,borderRadius:10,padding:'9px 13px',color:c.txt,fontSize:13,outline:'none',fontFamily:'DM Sans,sans-serif',boxSizing:'border-box' };
-  const [reqs, setReqs] = useState([]);
-  const [suppliers, setSuppliers] = useState([]);
-  const [active, setActive] = useState(null);
-  const [newItem, setNewItem] = useState({ medicineName:'',quantity:'',unit:'strips',priority:'medium',notes:'' });
-  const [sendModal, setSendModal] = useState(false);
-  const [sending, setSending] = useState(false);
-  const [title, setTitle] = useState(`List ${new Date().toLocaleDateString('en-IN')}`);
-  // POINT 8 — delete list confirm
-  const [delReq, setDelReq] = useState(null);
+  const pharmacist = getPharmacist();
+  const pharmacistId = pharmacist?._id || "";
 
-  const load = useCallback(async () => {
-    try {
-      const [r,s] = await Promise.all([
-        fetch(`${API}/requirements`,{headers:authH()}).then(r=>r.json()),
-        fetch(`${API}/suppliers`,{headers:authH()}).then(r=>r.json()),
-      ]);
-      const newReqs = Array.isArray(r)?r:[];
-      setReqs(newReqs);
-      setSuppliers(Array.isArray(s)?s:[]);
-      // Refresh active if open
-      if (active?._id) {
-        const updated = newReqs.find(x=>x._id===active._id);
-        if (updated) setActive(updated);
-      }
-    } catch {}
-  }, [active?._id]);
-  useEffect(() => { if (isPremium) load(); }, [isPremium, load]);
+  const customers = useQuery(api.pharmacistCustomers.getCustomers, { pharmacistId }) || [];
+  const addCustomerMut = useMutation(api.pharmacistCustomers.addCustomer);
 
-  async function createReq() {
-    try { const d=await fetch(`${API}/requirements`,{method:'POST',headers:authH(),body:JSON.stringify({title,items:[]})}).then(r=>r.json()); if(!d.error){setActive(d);load();toast('✅ List created!');} } catch(e) { toast(e.message,'error'); }
-  }
-
-  async function addItem() {
-    if (!newItem.medicineName.trim()||!newItem.quantity) return toast('Fill name and quantity','error');
-    if (!active) return toast('Create or select a list first','error');
-    const items=[...active.items,{...newItem,status:'pending'}];
-    try { const d=await fetch(`${API}/requirements/${active._id}`,{method:'PATCH',headers:authH(),body:JSON.stringify({items})}).then(r=>r.json()); if(!d.error){setActive(d);load();setNewItem({medicineName:'',quantity:'',unit:'strips',priority:'medium',notes:''});} } catch {}
-  }
-
-  async function removeItem(idx) {
-    if (!active) return;
-    const items=active.items.filter((_,i)=>i!==idx);
-    try { const d=await fetch(`${API}/requirements/${active._id}`,{method:'PATCH',headers:authH(),body:JSON.stringify({items})}).then(r=>r.json()); if(!d.error){setActive(d);load();} } catch {}
-  }
-
-  // POINT 8 — delete list
-  async function confirmDeleteReq() {
-    if (!delReq) return;
-    try {
-      const d = await fetch(`${API}/requirements/${delReq._id}`,{method:'DELETE',headers:authH()}).then(r=>r.json());
-      if (d.error) throw new Error(d.error);
-      toast(`🗑️ "${delReq.title}" deleted`);
-      if (active?._id === delReq._id) setActive(null);
-      setDelReq(null); load();
-    } catch(e) { toast(e.message,'error'); setDelReq(null); }
-  }
-
-  // POINT 9 — send creates supplier orders + marks sent
-  async function sendToSupplier(sId) {
-    setSending(true);
-    try {
-      const d = await fetch(`${API}/requirements/${active._id}/send`,{method:'POST',headers:authH(),body:JSON.stringify({supplierId:sId})}).then(r=>r.json());
-      if (d.error) throw new Error(d.error);
-      toast(`✅ ${d.message}`);
-      setSendModal(false); load();
-    } catch(e) { toast(e.message,'error'); }
-    setSending(false);
-  }
-
-  if (!isPremium) return <PremiumGate feature="Purchase Requirements" theme={theme}/>;
-  const pc = { high:'#ef4444',medium:'#f59e0b',low:'#10b981' };
-
-  return (
-    <div>
-      {/* POINT 8 — Delete list confirm */}
-      <ConfirmDialog open={!!delReq} title="🗑️ Delete List" message={`Delete "${delReq?.title}" with ${delReq?.items?.length||0} items? This cannot be undone.`} onConfirm={confirmDeleteReq} onCancel={()=>setDelReq(null)} confirmText="Delete List"/>
-
-      {sendModal && (
-        <div style={{ position:'fixed',inset:0,background:'rgba(0,0,0,0.65)',zIndex:200,display:'flex',alignItems:'center',justifyContent:'center',padding:16 }}>
-          <div style={{ background:c.modal,border:`1px solid ${c.cardBd}`,borderRadius:22,padding:26,width:'100%',maxWidth:420 }}>
-            <h3 style={{ color:c.txt,fontFamily:'Sora,sans-serif',margin:'0 0 16px' }}>📧 Send List to Supplier</h3>
-            <p style={{ color:c.txtM,fontSize:13,margin:'0 0 14px' }}>{active?.items?.length||0} items · orders will be created in Suppliers tab</p>
-            {suppliers.filter(s=>s.email).map(s=>(
-              <button key={s._id} onClick={()=>!sending&&sendToSupplier(s._id)} style={{ display:'flex',justifyContent:'space-between',width:'100%',padding:'11px 15px',borderRadius:11,border:`1px solid ${c.cardBd}`,background:c.card,color:c.txt,cursor:'pointer',marginBottom:7,fontSize:13,opacity:sending?0.6:1 }}>
-                <span><b>{s.name}</b> · {s.email}</span><span style={{ color:'#10b981',fontWeight:700 }}>Send →</span>
-              </button>
-            ))}
-            {!suppliers.filter(s=>s.email).length && <p style={{ color:'#ef4444',textAlign:'center',fontSize:13 }}>No suppliers with email. Add supplier emails first.</p>}
-            <button onClick={()=>setSendModal(false)} style={{ width:'100%',padding:'11px',borderRadius:11,border:`1px solid ${c.inpBd}`,background:c.secBg,color:c.secClr,cursor:'pointer',marginTop:7 }}>Cancel</button>
-          </div>
-        </div>
-      )}
-
-      <div style={{ display:'grid',gridTemplateColumns:'240px 1fr',gap:18 }}>
-        <div>
-          <div style={{ background:c.card,border:`1px solid ${c.cardBd}`,borderRadius:14,padding:13,marginBottom:11 }}>
-            <input placeholder="List title" value={title} onChange={e=>setTitle(e.target.value)} style={{ ...inp,width:'100%',marginBottom:9 }}/>
-            <button onClick={createReq} style={{ width:'100%',padding:'9px',borderRadius:10,border:'none',background:'linear-gradient(135deg,#1B6EF3,#00C2A8)',color:'white',fontWeight:700,cursor:'pointer',fontSize:13 }}>+ New List</button>
-          </div>
-          {reqs.map(r=>(
-            <div key={r._id} style={{ padding:'9px 13px',borderRadius:11,cursor:'pointer',marginBottom:5,transition:'all 0.15s',display:'flex',justifyContent:'space-between',alignItems:'center',
-              background:active?._id===r._id?(theme==='dark'?'rgba(27,110,243,0.15)':'#dbeafe'):c.card,
-              border:`1px solid ${active?._id===r._id?'rgba(27,110,243,0.4)':c.cardBd}` }}>
-              <div onClick={()=>setActive(r)} style={{ flex:1 }}>
-                <p style={{ color:c.txt,fontWeight:600,margin:0,fontSize:13 }}>{r.title}</p>
-                <p style={{ color:c.txtM,fontSize:11,margin:'2px 0 0' }}>{r.items?.length||0} items · {r.status}</p>
-              </div>
-              {/* POINT 8 — Delete list button */}
-              <button onClick={e=>{e.stopPropagation();setDelReq(r);}} style={{ background:'none',border:'none',cursor:'pointer',color:'#ef4444',fontSize:13,padding:'2px 4px',flexShrink:0 }}>🗑️</button>
-            </div>
-          ))}
-        </div>
-
-        <div>
-          {active ? (<>
-            <div style={{ display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:14 }}>
-              <h3 style={{ color:c.txt,fontFamily:'Sora,sans-serif',margin:0 }}>{active.title}</h3>
-              <button onClick={()=>setSendModal(true)} disabled={!active.items?.length} style={{ padding:'9px 18px',borderRadius:11,border:'none',background:'linear-gradient(135deg,#10b981,#059669)',color:'white',fontWeight:700,cursor:'pointer',fontSize:13,opacity:!active.items?.length?0.4:1 }}>📧 Send to Supplier</button>
-            </div>
-            {active.sentToSuppliers?.length > 0 && (
-              <div style={{ background:theme==='dark'?'rgba(16,185,129,0.06)':'#f0fdf4',border:`1px solid ${theme==='dark'?'rgba(16,185,129,0.2)':'#bbf7d0'}`,borderRadius:11,padding:'9px 14px',marginBottom:13,fontSize:12 }}>
-                <p style={{ color:'#10b981',fontWeight:700,margin:'0 0 4px' }}>✅ Sent to suppliers:</p>
-                {active.sentToSuppliers.map((s,i)=><p key={i} style={{ color:c.txtS,margin:0 }}>{s.supplierName} · {new Date(s.sentAt).toLocaleDateString('en-IN')}</p>)}
-              </div>
-            )}
-            <div style={{ background:c.card,border:`1px solid ${c.cardBd}`,borderRadius:16,padding:16,marginBottom:14 }}>
-              <p style={{ color:c.txtM,fontSize:11,fontWeight:700,margin:'0 0 11px',letterSpacing:'0.04em' }}>+ ADD MEDICINE</p>
-              <div style={{ display:'grid',gridTemplateColumns:'1fr 70px 70px',gap:7,marginBottom:7 }}>
-                <input placeholder="Medicine *" value={newItem.medicineName} onChange={e=>setNewItem({...newItem,medicineName:e.target.value})} style={inp}/>
-                <input placeholder="Qty *" inputMode="numeric" value={newItem.quantity} onChange={e=>setNewItem({...newItem,quantity:e.target.value})} style={inp}/>
-                <input placeholder="Unit" value={newItem.unit} onChange={e=>setNewItem({...newItem,unit:e.target.value})} style={inp}/>
-              </div>
-              <div style={{ display:'grid',gridTemplateColumns:'1fr 1fr',gap:7,marginBottom:9 }}>
-                <select value={newItem.priority} onChange={e=>setNewItem({...newItem,priority:e.target.value})} style={inp}>
-                  <option value="high">🔴 High</option><option value="medium">🟡 Medium</option><option value="low">🟢 Low</option>
-                </select>
-                <input placeholder="Notes" value={newItem.notes} onChange={e=>setNewItem({...newItem,notes:e.target.value})} style={inp}/>
-              </div>
-              <button onClick={addItem} style={{ width:'100%',padding:'9px',borderRadius:10,border:'none',background:theme==='dark'?'rgba(27,110,243,0.3)':'#1B6EF3',color:'white',fontWeight:700,cursor:'pointer',fontSize:13 }}>+ Add to List</button>
-            </div>
-            {!active.items?.length ? <div style={{ textAlign:'center',padding:36,color:c.txtM }}>Add medicines above</div> : (
-              <div style={{ display:'flex',flexDirection:'column',gap:7 }}>
-                {active.items.map((it,i)=>(
-                  <div key={i} style={{ display:'flex',alignItems:'center',gap:11,padding:'11px 15px',background:c.card,border:`1px solid ${c.cardBd}`,borderRadius:13 }}>
-                    <div style={{ width:9,height:9,borderRadius:'50%',background:pc[it.priority]||'#fff',flexShrink:0 }}/>
-                    <div style={{ flex:1 }}><p style={{ color:c.txt,fontWeight:600,margin:0 }}>{it.medicineName}</p><p style={{ color:c.txtM,fontSize:12,margin:'1px 0 0' }}>×{it.quantity} {it.unit}{it.notes?` · ${it.notes}`:''}</p></div>
-                    <span style={{ fontSize:11,fontWeight:700,padding:'2px 9px',borderRadius:20,background:pc[it.priority]+'20',color:pc[it.priority] }}>{it.priority}</span>
-                    <button onClick={()=>removeItem(i)} style={{ color:'#ef4444',background:'none',border:'none',cursor:'pointer',fontSize:15,lineHeight:1 }}>✕</button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </>) : <div style={{ textAlign:'center',padding:56,color:c.txtM }}><div style={{ fontSize:44,marginBottom:10 }}>📋</div>Create or select a list</div>}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ════════ CUSTOMERS ════════════════════════════════════════════
-function CustomersTab({ isPremium, toast, theme }) {
-  const c = C(theme);
-  const inp = { background:c.inp,border:`1px solid ${c.inpBd}`,borderRadius:10,padding:'9px 13px',color:c.txt,fontSize:13,outline:'none',width:'100%',boxSizing:'border-box',fontFamily:'DM Sans,sans-serif' };
-  const [customers, setCustomers] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const alerts = [];
   const [showAdd, setShowAdd] = useState(false);
-  const [alerts, setAlerts] = useState([]);
-  const [medModal, setMedModal] = useState(null);
-  const [form, setForm] = useState({ name:'',phone:'',email:'',address:'',age:'',notes:'' });
-  const [medForm, setMedForm] = useState({ medicineName:'',dosage:'',quantity:'1',frequency:'monthly',typicalDate:'',alertEnabled:true,alertDaysBefore:'1',notes:'' });
+  const [form, setForm] = useState({ name:'', phone:'', email:'', address:'', age:'', notes:'' });
+  const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [medModal, setMedModal] = useState(null);
+  const [medForm, setMedForm] = useState({ medicineName:'',dosage:'',quantity:'1',frequency:'monthly',typicalDate:'',alertEnabled:true,alertDaysBefore:'1',notes:'' });
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      const [cRes, aRes] = await Promise.all([
-        fetch(`${API}/customers`,{headers:authH()}).then(r=>r.json()),
-        fetch(`${API}/customers/alerts?days=7`,{headers:authH()}).then(r=>r.json()),
-      ]);
-      setCustomers(Array.isArray(cRes)?cRes:[]); setAlerts(aRes.alerts||[]);
-    } catch {}
-    setLoading(false);
-  }, []);
-  useEffect(() => { if (isPremium) load(); else setLoading(false); }, [isPremium, load]);
+  const inp = { background:c.inp,border:`1px solid ${c.inpBd}`,borderRadius:10,padding:'9px 13px',color:c.txt,fontSize:13,outline:'none',width:'100%',boxSizing:'border-box',fontFamily:'DM Sans,sans-serif' };
+
+  const deleteCustomerMut = useMutation(api.pharmacistCustomers.deleteCustomer);
+  const updateMedicinesMut = useMutation(api.pharmacistCustomers.updateMedicines);
 
   async function save() {
     if (!form.name.trim()) return toast('Name required','error');
     setSaving(true);
-    try { const d=await fetch(`${API}/customers`,{method:'POST',headers:authH(),body:JSON.stringify(form)}).then(r=>r.json()); if(d.error) throw new Error(d.error); toast('✅ Customer saved!'); setShowAdd(false); setForm({name:'',phone:'',email:'',address:'',age:'',notes:''}); load(); } catch(e) { toast(e.message,'error'); }
+    try {
+      await addCustomerMut({ pharmacistId, ...form });
+      toast('✅ Customer saved!'); setShowAdd(false); setForm({name:'',phone:'',email:'',address:'',age:'',notes:''});
+    } catch(e) { toast(e.message,'error'); }
     setSaving(false);
   }
 
@@ -1270,10 +1037,9 @@ function CustomersTab({ isPremium, toast, theme }) {
     const cx = customers.find(x=>x._id===medModal); if (!cx) return;
     const medicines=[...(cx.medicines||[]),{...medForm,quantity:parseInt(medForm.quantity)||1,typicalDate:parseInt(medForm.typicalDate)||null,alertDaysBefore:parseInt(medForm.alertDaysBefore)||1}];
     try {
-      const d=await fetch(`${API}/customers/${medModal}`,{method:'PATCH',headers:authH(),body:JSON.stringify({medicines})}).then(r=>r.json());
-      if(d.error) throw new Error(d.error);
+      await updateMedicinesMut({ customerId: medModal, medicines });
       toast('✅ Medicine record saved!');
-      setMedModal(null); setMedForm({medicineName:'',dosage:'',quantity:'1',frequency:'monthly',typicalDate:'',alertEnabled:true,alertDaysBefore:'1',notes:''}); load();
+      setMedModal(null); setMedForm({medicineName:'',dosage:'',quantity:'1',frequency:'monthly',typicalDate:'',alertEnabled:true,alertDaysBefore:'1',notes:''});
     } catch(e) { toast(e.message,'error'); }
   }
 
@@ -1281,18 +1047,20 @@ function CustomersTab({ isPremium, toast, theme }) {
   async function delMedicine(customerId, medIdx) {
     if (!confirm('Remove this medicine record?')) return;
     try {
-      const d = await fetch(`${API}/customers/${customerId}/medicines/${medIdx}`,{method:'DELETE',headers:authH()}).then(r=>r.json());
-      if (d.error) throw new Error(d.error);
+      const cx = customers.find(x=>x._id===customerId); if (!cx) return;
+      const medicines = cx.medicines.filter((_,i)=>i!==medIdx);
+      await updateMedicinesMut({ customerId, medicines });
       toast('Medicine record deleted');
-      // Update local state immediately
-      setCustomers(prev => prev.map(cx => {
-        if (cx._id !== customerId) return cx;
-        return { ...cx, medicines: cx.medicines.filter((_,i)=>i!==medIdx) };
-      }));
     } catch(e) { toast(e.message,'error'); }
   }
 
-  async function del(id) { if (!confirm('Remove customer?')) return; try { await fetch(`${API}/customers/${id}`,{method:'DELETE',headers:authH()}); toast('Removed'); load(); } catch(e) { toast(e.message,'error'); } }
+  async function del(id) { 
+    if (!confirm('Remove customer?')) return; 
+    try { 
+      await deleteCustomerMut({ customerId: id }); 
+      toast('Removed'); 
+    } catch(e) { toast(e.message,'error'); } 
+  }
 
   if (!isPremium) return <PremiumGate feature="Customer Tracking" theme={theme}/>;
 
@@ -1411,12 +1179,11 @@ function ProfileTab({ pharmacist, setPharmacist, theme, toggleTheme }) {
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState({ name:'', ownerName:'', phone:'', address:'' });
   const [saving, setSaving] = useState(false);
+  const [savingStatus, setSavingStatus] = useState(false);
   const [toast, setToast] = useState(null);
   const [info, setInfo] = useState(null);
 
-  useEffect(() => {
-    fetch(`${API}/me`,{headers:authH()}).then(r=>r.json()).then(d=>{ if (!d.error) setInfo(d); }).catch(()=>{});
-  }, []);
+  const updateProfileMut = useMutation(api.pharmacistAuth.updateProfile);
 
   function startEdit() {
     const ph = info || pharmacist;
@@ -1428,8 +1195,7 @@ function ProfileTab({ pharmacist, setPharmacist, theme, toggleTheme }) {
     if (!form.name.trim()) return;
     setSaving(true);
     try {
-      const d = await fetch(`${API}/profile`,{method:'PATCH',headers:authH(),body:JSON.stringify(form)}).then(r=>r.json());
-      if (d.error) throw new Error(d.error);
+      const d = await updateProfileMut({ pharmacistId: pharmacist._id || pharmacist.id, ...form });
       setInfo(d.pharmacist);
       // Update localStorage so dashboard header updates
       const cached = JSON.parse(localStorage.getItem('pharmacist_info')||'{}');
@@ -1443,6 +1209,26 @@ function ProfileTab({ pharmacist, setPharmacist, theme, toggleTheme }) {
   }
 
   const ph = info || pharmacist;
+
+  async function toggleOpenStatus() {
+    setSavingStatus(true);
+    try {
+      const nextOpen = !ph?.isOpen;
+      const d = await updateProfileMut({ 
+        pharmacistId: pharmacist._id || pharmacist.id, 
+        isOpen: nextOpen 
+      });
+      setInfo(d.pharmacist);
+      const cached = JSON.parse(localStorage.getItem('pharmacist_info')||'{}');
+      const updated = { ...cached, ...d.pharmacist };
+      localStorage.setItem('pharmacist_info', JSON.stringify(updated));
+      setPharmacist(updated);
+      setToast({ msg: nextOpen ? '🟢 Store marked as Open!' : '🔴 Store marked as Closed!', type:'success' });
+    } catch(e) { 
+      setToast({ msg: e.message, type:'error' }); 
+    }
+    setSavingStatus(false);
+  }
 
   return (
     <div style={{ maxWidth:620 }}>
@@ -1461,6 +1247,38 @@ function ProfileTab({ pharmacist, setPharmacist, theme, toggleTheme }) {
               {theme==='dark'?'🌙':'☀️'}
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Store Status Toggle */}
+      <div style={{ background:c.card,border:`1px solid ${c.cardBd}`,borderRadius:18,padding:18,marginBottom:14 }}>
+        <h3 style={{ color:c.txt,fontFamily:'Sora,sans-serif',margin:'0 0 14px',fontSize:15 }}>🏪 Store Status</h3>
+        <div style={{ display:'flex',alignItems:'center',justifyContent:'space-between' }}>
+          <div>
+            <p style={{ color:c.txt,fontWeight:600,margin:'0 0 3px',fontSize:14 }}>
+              {ph?.isOpen ? '🟢 Open Now' : '🔴 Closed'}
+            </p>
+            <p style={{ color:c.txtM,fontSize:12,margin:0 }}>Toggle your pharmacy's visibility on the search map</p>
+          </div>
+          <button 
+            onClick={toggleOpenStatus}
+            disabled={savingStatus}
+            style={{ 
+              padding:'8px 18px', 
+              borderRadius:99, 
+              border:'none', 
+              background: ph?.isOpen ? '#ef4444' : '#10b981', 
+              color:'white', 
+              fontWeight:700, 
+              cursor:'pointer',
+              fontSize:13,
+              boxShadow: ph?.isOpen ? '0 4px 14px rgba(239,68,68,0.2)' : '0 4px 14px rgba(16,183,106,0.2)',
+              transition:'all 0.2s',
+              opacity: savingStatus ? 0.7 : 1
+            }}
+          >
+            {savingStatus ? 'Updating...' : (ph?.isOpen ? 'Mark Closed' : 'Mark Open')}
+          </button>
         </div>
       </div>
 
@@ -1498,7 +1316,17 @@ function ProfileTab({ pharmacist, setPharmacist, theme, toggleTheme }) {
           </div>
         ) : (
           <div style={{ display:'grid',gridTemplateColumns:'1fr 1fr',gap:10 }}>
-            {[['Pharmacy Name',ph?.name],['Owner',ph?.ownerName||'—'],['Email',ph?.email],['Phone',ph?.phone||'—'],['Address',ph?.address||'—'],['GSTIN',ph?.gstin||'—'],['License No',ph?.licenseNo||'—'],['Plan',ph?.isPremium?'✨ Premium':'Free']].map(([l,v])=>(
+            {[
+              ['Pharmacy Name', ph?.name],
+              ['Status', ph?.isOpen ? '🟢 Open Now' : '🔴 Closed'],
+              ['Owner', ph?.ownerName||'—'],
+              ['Email', ph?.email],
+              ['Phone', ph?.phone||'—'],
+              ['Address', ph?.address||'—'],
+              ['GSTIN', ph?.gstin||'—'],
+              ['License No', ph?.licenseNo||'—'],
+              ['Plan', ph?.isPremium?'✨ Premium':'Free']
+            ].map(([l,v])=>(
               <div key={l} style={{ background:c.inp,borderRadius:11,padding:'11px 13px' }}>
                 <p style={{ color:c.txtM,fontSize:10,fontWeight:700,margin:'0 0 3px',letterSpacing:'0.04em' }}>{l.toUpperCase()}</p>
                 <p style={{ color:c.txt,fontWeight:600,margin:0,fontSize:13,wordBreak:'break-all' }}>{v}</p>

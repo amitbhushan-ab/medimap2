@@ -169,19 +169,19 @@ export default function SubmitPricePage() {
       <div className="min-h-[calc(100vh-64px)] flex items-center justify-center px-4">
         <div className="text-center max-w-sm">
           <div className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg text-4xl" style={{ background: 'linear-gradient(135deg,#1B6EF3,#00C2A8)' }}>🎉</div>
-          <h2 className="text-2xl font-bold mb-2" style={{ color: 'var(--text-primary)' }}>Submitted!</h2>
+          <h2 className="text-2xl font-bold mb-2" style={{ color: 'var(--text-primary)' }}>{lang === 'hi' ? 'जमा हो गया!' : 'Submitted!'}</h2>
           <p className="text-sm mb-3" style={{ color: 'var(--text-secondary)' }}>
-            Price of <strong>₹{form.price}</strong> for <strong>{form.medicineName}</strong> submitted.
-            {selectedPharmacy && <><br/><span className="text-emerald-600">✅ {selectedPharmacy.name} will be notified.</span></>}
-            {isNewPharmacy && <><br/><span className="text-amber-600">⚠️ New pharmacy — admin will review and onboard.</span></>}
+            {lang === 'hi' ? <><strong>{form.medicineName}</strong> की कीमत <strong>₹{form.price}</strong> जमा की गई।</> : <>Price of <strong>₹{form.price}</strong> for <strong>{form.medicineName}</strong> submitted.</>}
+            {selectedPharmacy && <><br/><span className="text-emerald-600">✅ {selectedPharmacy.name} {lang === 'hi' ? 'को सूचित किया जाएगा।' : 'will be notified.'}</span></>}
+            {isNewPharmacy && <><br/><span className="text-amber-600">⚠️ {lang === 'hi' ? 'नई फार्मेसी — व्यवस्थापक समीक्षा करेगा।' : 'New pharmacy — admin will review and onboard.'}</span></>}
           </p>
           <div className="bg-blue-50 rounded-xl p-3 mb-6 text-xs text-blue-700">
-            🏆 Once approved, you'll earn <strong>+20 MediPoints!</strong>
+            🏆 {lang === 'hi' ? <>स्वीकृत होने पर आपको <strong>+20 MediPoints</strong> मिलेंगे!</> : <>Once approved, you'll earn <strong>+20 MediPoints!</strong></>}
           </div>
           <div className="flex gap-3">
             <button onClick={() => { setSubmitted(false); setFile(null); setPreview(null); setScanned(false); setSelectedPharmacy(null); setPharmacySearch(''); setIsNewPharmacy(false); setForm({ medicineName:'', price:'', inStock:true, personalNote:'' }); setStep(1); }}
-              className="flex-1 btn-secondary text-sm !py-3">Submit Another</button>
-            <Link to="/" className="flex-1 btn-primary text-center text-sm !py-3">Back to Home</Link>
+              className="flex-1 btn-secondary text-sm !py-3">{lang === 'hi' ? 'और जमा करें' : 'Submit Another'}</button>
+            <Link to="/" className="flex-1 btn-primary text-center text-sm !py-3">{lang === 'hi' ? 'होम पर जाएं' : 'Back to Home'}</Link>
           </div>
         </div>
       </div>
@@ -193,48 +193,48 @@ export default function SubmitPricePage() {
       {/* Header */}
       <div className="text-center mb-8">
         <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg text-2xl" style={{ background: 'linear-gradient(135deg,#1B6EF3,#00C2A8)' }}>💊</div>
-        <h1 className="text-2xl font-bold mb-2" style={{ color: 'var(--text-primary)', fontFamily: 'Sora, sans-serif' }}>Submit Price Update</h1>
-        <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>Help the community — earn <strong>+20 MediPoints</strong> on approval</p>
+        <h1 className="text-2xl font-bold mb-2" style={{ color: 'var(--text-primary)', fontFamily: 'Sora, sans-serif' }}>{lang === 'hi' ? 'कीमत अपडेट जमा करें' : 'Submit Price Update'}</h1>
+        <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>{lang === 'hi' ? <>समुदाय की मदद करें — स्वीकृति पर <strong>+20 MediPoints</strong> कमाएं</> : <>Help the community — earn <strong>+20 MediPoints</strong> on approval</>}</p>
       </div>
 
       {/* Step 1: Upload Bill */}
       <div className="card p-6 mb-4">
         <div className="flex items-center gap-3 mb-4">
           <div className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm text-white" style={{ background: 'linear-gradient(135deg,#1B6EF3,#00C2A8)' }}>1</div>
-          <h2 className="font-semibold" style={{ color: 'var(--text-primary)' }}>Upload Receipt</h2>
-          <span className="text-xs ml-auto" style={{ color: 'var(--text-muted)' }}>Optional</span>
+          <h2 className="font-semibold" style={{ color: 'var(--text-primary)' }}>{lang === 'hi' ? 'रसीद अपलोड करें' : 'Upload Receipt'}</h2>
+          <span className="text-xs ml-auto" style={{ color: 'var(--text-muted)' }}>{lang === 'hi' ? 'वैकल्पिक' : 'Optional'}</span>
         </div>
         <div onClick={() => fileRef.current.click()}
           className="border-2 border-dashed rounded-2xl p-8 text-center cursor-pointer transition-all"
           style={{ borderColor: file ? '#1B6EF3' : 'var(--border)', background: file ? 'rgba(27,110,243,0.02)' : 'var(--bg-subtle)' }}>
           {preview
             ? <img src={preview} alt="bill" className="max-h-48 mx-auto rounded-xl shadow-md"/>
-            : <><div className="text-4xl mb-2">{file ? '📄' : '⬆️'}</div><p className="font-medium" style={{ color: 'var(--text-secondary)' }}>{file ? file.name : 'Drop receipt here or click'}</p><p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>JPG, PNG, PDF — 10MB max</p></>}
+            : <><div className="text-4xl mb-2">{file ? '📄' : '⬆️'}</div><p className="font-medium" style={{ color: 'var(--text-secondary)' }}>{file ? file.name : (lang === 'hi' ? 'रसीद यहाँ छोड़ें या क्लिक करें' : 'Drop receipt here or click')}</p><p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>JPG, PNG, PDF — 10MB max</p></>}
           <input ref={fileRef} type="file" accept="image/*,.pdf" onChange={handleFile} className="hidden"/>
         </div>
         {file && !scanned && (
           <button onClick={handleScan} disabled={scanning}
             className="btn-primary w-full mt-3 !py-3 text-sm">
-            {scanning ? <span className="flex items-center justify-center gap-2"><svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>Scanning...</span> : '🔍 Scan with OCR'}
+            {scanning ? <span className="flex items-center justify-center gap-2"><svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>{lang === 'hi' ? 'स्कैन हो रहा है...' : 'Scanning...'}</span> : (lang === 'hi' ? '🔍 OCR से स्कैन करें' : '🔍 Scan with OCR')}
           </button>
         )}
-        {scanned && <p className="text-emerald-600 text-sm font-medium mt-2 text-center">✅ Scanned! Review details below.</p>}
-        <button onClick={() => setStep(2)} className="text-xs text-center w-full mt-2 block" style={{ color: 'var(--text-muted)' }}>Skip — fill manually ›</button>
+        {scanned && <p className="text-emerald-600 text-sm font-medium mt-2 text-center">✅ {lang === 'hi' ? 'स्कैन हो गया! नीचे विवरण देखें।' : 'Scanned! Review details below.'}</p>}
+        <button onClick={() => setStep(2)} className="text-xs text-center w-full mt-2 block" style={{ color: 'var(--text-muted)' }}>{lang === 'hi' ? 'छोड़ें — मैन्युअल भरें ›' : 'Skip — fill manually ›'}</button>
       </div>
 
       {/* Step 2: Details */}
       <div className="card p-6 mb-4">
         <div className="flex items-center gap-3 mb-4">
           <div className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm text-white" style={{ background: 'linear-gradient(135deg,#1B6EF3,#00C2A8)' }}>2</div>
-          <h2 className="font-semibold" style={{ color: 'var(--text-primary)' }}>Medicine & Price</h2>
+          <h2 className="font-semibold" style={{ color: 'var(--text-primary)' }}>{lang === 'hi' ? 'दवा और कीमत' : 'Medicine & Price'}</h2>
         </div>
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>💊 Medicine Name *</label>
-            <input className="input-field" placeholder="e.g. Paracetamol 500mg" value={form.medicineName} onChange={e => setForm({ ...form, medicineName: e.target.value })}/>
+            <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>💊 {lang === 'hi' ? 'दवा का नाम *' : 'Medicine Name *'}</label>
+            <input className="input-field" placeholder={lang === 'hi' ? 'जैसे Paracetamol 500mg' : 'e.g. Paracetamol 500mg'} value={form.medicineName} onChange={e => setForm({ ...form, medicineName: e.target.value })}/>
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>₹ Price *</label>
+            <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>₹ {lang === 'hi' ? 'कीमत *' : 'Price *'}</label>
             <div className="relative">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 font-semibold" style={{ color: 'var(--text-muted)' }}>₹</span>
               <input className="input-field !pl-8" inputMode="decimal" placeholder="0.00" value={form.price} onChange={e => setForm({ ...form, price: e.target.value })}/>
@@ -243,11 +243,11 @@ export default function SubmitPricePage() {
 
           {/* ── PHARMACY SELECTOR — KEY FIX ── */}
           <div>
-            <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>🏥 Pharmacy *</label>
+            <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>🏥 {lang === 'hi' ? 'फार्मेसी *' : 'Pharmacy *'}</label>
             <div className="flex items-center gap-2 mb-2">
               <label className="flex items-center gap-1.5 cursor-pointer text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>
                 <input type="checkbox" checked={isNewPharmacy} onChange={e => { setIsNewPharmacy(e.target.checked); setSelectedPharmacy(null); setPharmacySearch(''); }}/>
-                Pharmacy not listed on MediMap
+                {lang === 'hi' ? 'फार्मेसी MediMap पर सूचीबद्ध नहीं है' : 'Pharmacy not listed on MediMap'}
               </label>
             </div>
 
@@ -259,7 +259,7 @@ export default function SubmitPricePage() {
                   </svg>
                   <input
                     className="input-field !pl-10"
-                    placeholder="Search pharmacy name..."
+                    placeholder={lang === 'hi' ? 'फार्मेसी का नाम खोजें...' : 'Search pharmacy name...'}
                     value={pharmacySearch}
                     onChange={e => { setPharmacySearch(e.target.value); setSelectedPharmacy(null); setPharmacyDropdownOpen(true); }}
                     onFocus={() => setPharmacyDropdownOpen(true)}
@@ -289,7 +289,7 @@ export default function SubmitPricePage() {
                           <p className="text-xs truncate" style={{ color: 'var(--text-muted)' }}>{ph.address}</p>
                           <div className="flex items-center gap-2 mt-0.5">
                             {ph.rating && <span className="text-xs text-amber-500">★ {ph.rating}</span>}
-                            {ph.distanceKm && <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{ph.distanceKm} km</span>}
+                            {ph.distanceKm && <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{ph.distanceKm} {lang === 'hi' ? 'किमी' : 'km'}</span>}
                           </div>
                         </div>
                       </div>
@@ -304,7 +304,7 @@ export default function SubmitPricePage() {
                     <div className="flex-1 min-w-0">
                       <p className="font-semibold text-sm text-emerald-700">{selectedPharmacy.name}</p>
                       <p className="text-xs text-emerald-600">{selectedPharmacy.address}</p>
-                      <p className="text-xs text-emerald-500 mt-0.5">Pharmacist will be notified of your submission.</p>
+                      <p className="text-xs text-emerald-500 mt-0.5">{lang === 'hi' ? 'फार्मासिस्ट को आपके सबमिशन की सूचना दी जाएगी।' : 'Pharmacist will be notified of your submission.'}</p>
                     </div>
                     <button onClick={() => { setSelectedPharmacy(null); setPharmacySearch(''); }} className="text-xs text-gray-400 hover:text-red-500 flex-shrink-0">✕</button>
                   </div>
@@ -312,17 +312,17 @@ export default function SubmitPricePage() {
 
                 {pharmacySearch.length >= 2 && pharmacyResults.length === 0 && !pharmacySearching && (
                   <div className="mt-2 p-3 rounded-xl text-xs" style={{ background: 'rgba(247,144,9,0.08)', border: '1px solid rgba(247,144,9,0.2)', color: '#92400e' }}>
-                    ⚠️ No pharmacy found for "{pharmacySearch}". Check the "not listed" box above to submit for a new pharmacy.
+                    ⚠️ {lang === 'hi' ? `"${pharmacySearch}" के लिए कोई फार्मेसी नहीं मिली। ऊपर "सूचीबद्ध नहीं" बॉक्स चेक करें।` : `No pharmacy found for "${pharmacySearch}". Check the "not listed" box above to submit for a new pharmacy.`}
                   </div>
                 )}
               </div>
             ) : (
               <div className="space-y-2 p-4 rounded-xl" style={{ background: 'rgba(247,144,9,0.06)', border: '1px solid rgba(247,144,9,0.2)' }}>
-                <p className="text-xs font-semibold" style={{ color: '#92400e' }}>New Pharmacy Details</p>
-                <input className="input-field" placeholder="Pharmacy Name *" value={newPharmacyData.name} onChange={e => setNewPharmacyData({ ...newPharmacyData, name: e.target.value })}/>
-                <input className="input-field" placeholder="Address" value={newPharmacyData.address} onChange={e => setNewPharmacyData({ ...newPharmacyData, address: e.target.value })}/>
-                <input className="input-field" placeholder="Phone (optional)" value={newPharmacyData.phone} onChange={e => setNewPharmacyData({ ...newPharmacyData, phone: e.target.value })}/>
-                <input className="input-field" placeholder="City" value={newPharmacyData.city} onChange={e => setNewPharmacyData({ ...newPharmacyData, city: e.target.value })}/>
+                <p className="text-xs font-semibold" style={{ color: '#92400e' }}>{lang === 'hi' ? 'नई फार्मेसी का विवरण' : 'New Pharmacy Details'}</p>
+                <input className="input-field" placeholder={lang === 'hi' ? 'फार्मेसी का नाम *' : 'Pharmacy Name *'} value={newPharmacyData.name} onChange={e => setNewPharmacyData({ ...newPharmacyData, name: e.target.value })}/>
+                <input className="input-field" placeholder={lang === 'hi' ? 'पता' : 'Address'} value={newPharmacyData.address} onChange={e => setNewPharmacyData({ ...newPharmacyData, address: e.target.value })}/>
+                <input className="input-field" placeholder={lang === 'hi' ? 'फ़ोन (वैकल्पिक)' : 'Phone (optional)'} value={newPharmacyData.phone} onChange={e => setNewPharmacyData({ ...newPharmacyData, phone: e.target.value })}/>
+                <input className="input-field" placeholder={lang === 'hi' ? 'शहर' : 'City'} value={newPharmacyData.city} onChange={e => setNewPharmacyData({ ...newPharmacyData, city: e.target.value })}/>
               </div>
             )}
           </div>
@@ -334,14 +334,14 @@ export default function SubmitPricePage() {
                 onClick={() => setForm({ ...form, inStock: !form.inStock })}>
                 <div className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${form.inStock ? 'translate-x-5' : ''}`}/>
               </div>
-              <span className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>{form.inStock ? '✅ In Stock' : '❌ Out of Stock'}</span>
+              <span className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>{form.inStock ? (lang === 'hi' ? '✅ स्टॉक में है' : '✅ In Stock') : (lang === 'hi' ? '❌ स्टॉक में नहीं' : '❌ Out of Stock')}</span>
             </label>
           </div>
 
           {/* Personal note */}
           <div>
-            <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>📝 Note (optional)</label>
-            <textarea className="input-field" rows={2} placeholder="e.g. Bought 2 strips today, price on receipt..." value={form.personalNote} onChange={e => setForm({ ...form, personalNote: e.target.value })} maxLength={500}/>
+            <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>📝 {lang === 'hi' ? 'नोट (वैकल्पिक)' : 'Note (optional)'}</label>
+            <textarea className="input-field" rows={2} placeholder={lang === 'hi' ? 'जैसे आज 2 स्ट्रिप खरीदी, रसीद पर कीमत...' : 'e.g. Bought 2 strips today, price on receipt...'} value={form.personalNote} onChange={e => setForm({ ...form, personalNote: e.target.value })} maxLength={500}/>
           </div>
         </div>
       </div>
@@ -350,7 +350,7 @@ export default function SubmitPricePage() {
       <div className="card p-6">
         {!user && (
           <div className="mb-4 p-3 rounded-xl text-xs" style={{ background: 'rgba(247,144,9,0.1)', color: '#92400e', border: '1px solid rgba(247,144,9,0.2)' }}>
-            ⚠️ <Link to="/login" className="underline font-semibold">Login</Link> to earn +20 MediPoints when approved!
+            ⚠️ <Link to="/login" className="underline font-semibold">{lang === 'hi' ? 'लॉग इन करें' : 'Login'}</Link> {lang === 'hi' ? 'स्वीकृति पर +20 MediPoints कमाने के लिए!' : 'to earn +20 MediPoints when approved!'}
           </div>
         )}
 
@@ -364,8 +364,8 @@ export default function SubmitPricePage() {
           disabled={submitting || !form.medicineName || !form.price || (!selectedPharmacy && !isNewPharmacy)}
           className="btn-primary w-full !py-4 text-base">
           {submitting
-            ? <span className="flex items-center justify-center gap-2"><svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>Submitting...</span>
-            : '📤 Submit Price Update'}
+            ? <span className="flex items-center justify-center gap-2"><svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>{lang === 'hi' ? 'जमा हो रहा है...' : 'Submitting...'}</span>
+            : (lang === 'hi' ? '📤 कीमत अपडेट जमा करें' : '📤 Submit Price Update')}
         </button>
       </div>
     </div>

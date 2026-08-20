@@ -3,6 +3,7 @@
 import { useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useLang } from '../context/LanguageContext';
+import Tesseract from 'tesseract.js';
 
 export default function ScanPrescription() {
   const { lang } = useLang();
@@ -28,17 +29,37 @@ export default function ScanPrescription() {
     if (!file) return;
     setScanning(true); setError('');
     try {
-      const fd = new FormData();
-      fd.append('prescription', file);
-      const res = await fetch('https://medimap-backend-ygqj.onrender.com/api/prescription/scan', { method:'POST', body:fd });
-      const data = await res.json();
-      if (data.error) throw new Error(data.error);
+      // Offline AI OCR using Tesseract.js directly in the browser!
+      const result = await Tesseract.recognize(file, 'eng');
+      const text = result.data.text || '';
+      
+      setRawText(text);
+      
+      // Simple parsing logic to find potential medicines based on common formats
+      const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 3);
+      const detected = [];
+      
+      for (const line of lines) {
+        // Look for typical medicine names (simple heuristic: starts with capital, has mg/ml or Cap/Tab)
+        if (/(mg|ml|mcg|gm|g\b|iu|unit|cap|tab|syr|inj|drp)/i.test(line)) {
+          const cleanName = line.replace(/[^a-zA-Z0-9\s]/g, '').trim();
+          const searchName = cleanName.replace(/\d+\s*(?:mg|ml|mcg|gm|g\b|iu|units?)/i, '').trim().split(/\s+/).slice(0,2).join(' ');
+          
+          if (searchName.length > 2) {
+            detected.push({
+              name: line.substring(0, 40), // Truncate if too long
+              searchName: searchName,
+              dosage: '',
+              quantity: '1',
+              price: ''
+            });
+          }
+        }
+      }
 
-      const detected = data.medicines || [];
-      setRawText(data.rawText || '');
       setMedicines(detected.length > 0 ? detected : [{ name:'', searchName:'', dosage:'', quantity:'1', price:'' }]);
       setStep('results');
-      if (!detected.length) setError('No medicines detected. Fill manually.');
+      if (!detected.length) setError('No strict medicines detected automatically. Please fill manually from the text below.');
     } catch (err) {
       setError('Scan failed: ' + err.message);
       setMedicines([{ name:'', searchName:'', dosage:'', quantity:'1', price:'' }]);
@@ -111,8 +132,8 @@ export default function ScanPrescription() {
             {file && (
               <button onClick={handleScan} disabled={scanning} className="btn-primary w-full !py-4 text-base mb-3">
                 {scanning
-                  ? <span className="flex items-center justify-center gap-2"><svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>Scanning...</span>
-                  : `🔍 Scan with AI`}
+                  ? <span className="flex items-center justify-center gap-2"><svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>{lang === 'hi' ? 'स्कैन हो रहा है...' : 'Scanning...'}</span>
+                  : `🔍 ${lang === 'hi' ? 'AI से स्कैन करें' : 'Scan with AI'}`}
               </button>
             )}
 
@@ -121,7 +142,7 @@ export default function ScanPrescription() {
                 {lang==='hi'?'सीधे दवाई नाम डालें':'Or add medicines manually'}
               </p>
               <button onClick={()=>{setMedicines([{name:'',searchName:'',dosage:'',quantity:'1',price:''}]);setStep('results');}} className="btn-secondary text-sm !py-2">
-                ✏️ Manual Entry
+                ✏️ {lang === 'hi' ? 'मैन्युअल प्रविष्टि' : 'Manual Entry'}
               </button>
             </div>
           </>
@@ -132,8 +153,8 @@ export default function ScanPrescription() {
             {rawText && (
               <div className="card p-4 mb-4">
                 <div className="flex items-center justify-between mb-2">
-                  <p className="text-xs font-bold" style={{ color:'var(--text-muted)' }}>📄 Extracted Text</p>
-                  <button onClick={()=>setRawText('')} className="text-xs" style={{ color:'var(--text-muted)' }}>Hide</button>
+                  <p className="text-xs font-bold" style={{ color:'var(--text-muted)' }}>📄 {lang === 'hi' ? 'निकाला गया टेक्स्ट' : 'Extracted Text'}</p>
+                  <button onClick={()=>setRawText('')} className="text-xs" style={{ color:'var(--text-muted)' }}>{lang === 'hi' ? 'छुपाएं' : 'Hide'}</button>
                 </div>
                 <pre className="text-xs whitespace-pre-wrap font-mono p-3 rounded-xl max-h-28 overflow-y-auto" style={{ background:'var(--bg-subtle)',color:'var(--text-secondary)' }}>
                   {rawText}
@@ -146,10 +167,10 @@ export default function ScanPrescription() {
             <div className="card p-5 mb-4">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="font-bold text-base" style={{ color:'var(--text-primary)', fontFamily:'Sora,sans-serif' }}>
-                  💊 Medicines ({medicines.length})
+                  💊 {lang === 'hi' ? 'दवाइयां' : 'Medicines'} ({medicines.length})
                 </h2>
                 <button onClick={()=>{setStep('upload');setFile(null);setPreview(null);setMedicines([]);setRawText('');setError('');}} className="btn-secondary text-xs !py-1.5">
-                  ← Rescan
+                  ← {lang === 'hi' ? 'फिर से स्कैन करें' : 'Rescan'}
                 </button>
               </div>
 
@@ -159,17 +180,17 @@ export default function ScanPrescription() {
                     {/* Medicine display name (for reference) */}
                     <div className="mb-2">
                       <p className="text-xs font-semibold mb-1" style={{ color:'var(--text-muted)' }}>
-                        Medicine Name
+                        {lang === 'hi' ? 'दवा का नाम' : 'Medicine Name'}
                       </p>
                       <input className="input-field" value={med.name}
                         onChange={e=>updateMed(idx,'name',e.target.value)}
-                        placeholder="Medicine name (e.g. Paracetamol 500mg)"/>
+                        placeholder={lang === 'hi' ? 'दवा का नाम (जैसे Paracetamol 500mg)' : 'Medicine name (e.g. Paracetamol 500mg)'}/>
                     </div>
 
                     {/* Search query shown */}
                     {med.searchName && med.searchName !== med.name && (
                       <div className="mb-2 flex items-center gap-2 text-xs" style={{ color:'var(--text-muted)' }}>
-                        <span>🔍 Will search for:</span>
+                        <span>🔍 {lang === 'hi' ? 'इसके लिए खोजा जाएगा:' : 'Will search for:'}</span>
                         <span className="font-semibold px-2 py-0.5 rounded-full"
                           style={{ background:'rgba(27,110,243,0.1)',color:'#1B6EF3' }}>
                           {med.searchName}
@@ -186,13 +207,13 @@ export default function ScanPrescription() {
                         </div>
                       )}
                       <div>
-                        <p className="text-xs font-semibold mb-1" style={{ color:'var(--text-muted)' }}>Quantity</p>
+                        <p className="text-xs font-semibold mb-1" style={{ color:'var(--text-muted)' }}>{lang === 'hi' ? 'मात्रा' : 'Quantity'}</p>
                         <input className="input-field" inputMode="numeric" value={med.quantity||'1'}
                           onChange={e=>updateMed(idx,'quantity',e.target.value.replace(/\D/g,''))} placeholder="1"/>
                       </div>
                       {med.price && (
                         <div>
-                          <p className="text-xs font-semibold mb-1" style={{ color:'var(--text-muted)' }}>Price ₹</p>
+                          <p className="text-xs font-semibold mb-1" style={{ color:'var(--text-muted)' }}>{lang === 'hi' ? 'कीमत' : 'Price'} ₹</p>
                           <input className="input-field" value={med.price}
                             onChange={e=>updateMed(idx,'price',e.target.value)} placeholder="0"/>
                         </div>
@@ -204,7 +225,7 @@ export default function ScanPrescription() {
                         onClick={()=>searchMed(med)}
                         disabled={!med.name.trim() && !med.searchName?.trim()}
                         className="btn-primary flex-1 !py-2 text-xs disabled:opacity-40">
-                        🔍 Find Price
+                        🔍 {lang === 'hi' ? 'कीमत खोजें' : 'Find Price'}
                       </button>
                       <button onClick={()=>setMedicines(prev=>prev.filter((_,i)=>i!==idx))}
                         className="px-3 py-2 rounded-xl text-xs font-medium"
@@ -218,11 +239,11 @@ export default function ScanPrescription() {
 
               <div className="flex gap-3 mt-4">
                 <button onClick={()=>setMedicines(p=>[...p,{name:'',searchName:'',dosage:'',quantity:'1',price:''}])} className="btn-secondary flex-1 !py-2.5 text-sm">
-                  + Add
+                  + {lang === 'hi' ? 'जोड़ें' : 'Add'}
                 </button>
                 {medicines.filter(m=>m.name.trim()||m.searchName?.trim()).length > 0 && (
                   <button onClick={()=>searchMed(medicines.find(m=>m.name.trim()||m.searchName?.trim()))} className="btn-primary flex-1 !py-2.5 text-sm">
-                    🔍 Search First
+                    🔍 {lang === 'hi' ? 'पहले खोजें' : 'Search First'}
                   </button>
                 )}
               </div>

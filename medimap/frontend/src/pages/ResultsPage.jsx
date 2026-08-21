@@ -36,8 +36,34 @@ export default function ResultsPage() {
   const [results, setResults] = useState([]);
   const [medicine, setMedicine] = useState(null);
   const [loading, setLoading] = useState(true);
-  const frontImg = 'https://upload.wikimedia.org/wikipedia/commons/f/f5/Blister_Pack.jpg';
-  const backImg = 'https://upload.wikimedia.org/wikipedia/commons/1/1c/Cold_Form_Foil_blister_pack2.jpg';
+  // Real packaging image mapping for seeded demo medicines
+  const BRAND_IMAGES = {
+    'paracetamol': { 
+      f: 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=300&h=300&fit=crop', 
+      b: 'https://upload.wikimedia.org/wikipedia/commons/1/1c/Cold_Form_Foil_blister_pack2.jpg' 
+    },
+    'amoxicillin': { 
+      f: 'https://images.unsplash.com/photo-1628771065518-0d82f1938462?w=300&h=300&fit=crop', 
+      b: 'https://upload.wikimedia.org/wikipedia/commons/1/1c/Cold_Form_Foil_blister_pack2.jpg' 
+    },
+    'metformin': { 
+      f: 'https://images.unsplash.com/photo-1607619056574-7b8d3ee536b2?w=300&h=300&fit=crop', 
+      b: 'https://upload.wikimedia.org/wikipedia/commons/1/1c/Cold_Form_Foil_blister_pack2.jpg' 
+    },
+    'cetirizine': { 
+      f: 'https://images.unsplash.com/photo-1550572017-edb30263f350?w=300&h=300&fit=crop', 
+      b: 'https://upload.wikimedia.org/wikipedia/commons/1/1c/Cold_Form_Foil_blister_pack2.jpg' 
+    },
+    'azithromycin': { 
+      f: 'https://images.unsplash.com/photo-1471864190281-a93a3070b6de?w=300&h=300&fit=crop', 
+      b: 'https://upload.wikimedia.org/wikipedia/commons/1/1c/Cold_Form_Foil_blister_pack2.jpg' 
+    }
+  };
+
+  const searchKey = Object.keys(BRAND_IMAGES).find(k => (medicine?.name || query)?.toLowerCase().includes(k));
+  const fallbackImages = { f: 'https://upload.wikimedia.org/wikipedia/commons/f/f5/Blister_Pack.jpg', b: 'https://upload.wikimedia.org/wikipedia/commons/1/1c/Cold_Form_Foil_blister_pack2.jpg' };
+  const frontImg = searchKey ? BRAND_IMAGES[searchKey].f : fallbackImages.f;
+  const backImg = searchKey ? BRAND_IMAGES[searchKey].b : fallbackImages.b;
   const [error, setError] = useState('');
   const [selectedIdx, setSelectedIdx] = useState(0);
   const [sortBy, setSortBy] = useState('distance'); // distance | price

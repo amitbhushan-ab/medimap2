@@ -36,15 +36,8 @@ export default function ResultsPage() {
   const [results, setResults] = useState([]);
   const [medicine, setMedicine] = useState(null);
   const [loading, setLoading] = useState(true);
-  // Deterministic generic image for medicines
-  const MED_IMAGES = [
-    'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=200&h=200&fit=crop&auto=format',
-    'https://images.unsplash.com/photo-1628771065518-0d82f1938462?w=200&h=200&fit=crop&auto=format',
-    'https://images.unsplash.com/photo-1607619056574-7b8d3ee536b2?w=200&h=200&fit=crop&auto=format',
-    'https://images.unsplash.com/photo-1550572017-edb30263f350?w=200&h=200&fit=crop&auto=format',
-    'https://images.unsplash.com/photo-1471864190281-a93a3070b6de?w=200&h=200&fit=crop&auto=format'
-  ];
-  const medImage = MED_IMAGES[((medicine?.name || query)?.length || 0) % MED_IMAGES.length];
+  const frontImg = 'https://upload.wikimedia.org/wikipedia/commons/f/f5/Blister_Pack.jpg';
+  const backImg = 'https://upload.wikimedia.org/wikipedia/commons/1/1c/Cold_Form_Foil_blister_pack2.jpg';
   const [error, setError] = useState('');
   const [selectedIdx, setSelectedIdx] = useState(0);
   const [sortBy, setSortBy] = useState('distance'); // distance | price
@@ -284,8 +277,15 @@ export default function ResultsPage() {
         {/* Medicine info banner */}
         {medicine && !loading && (
           <div className="card p-5 mb-5 flex items-center gap-4 flex-wrap bg-gradient-to-r from-blue-50/50 via-teal-50/20 to-white border-l-4 border-l-blue-500 shadow-sm">
-                          <div className="w-16 h-16 rounded-2xl overflow-hidden flex-shrink-0 shadow-md border border-gray-100">
-                <img src={medImage} alt={medicine.name || query} className="w-full h-full object-cover" />
+                                        <div className="flex flex-shrink-0 gap-2">
+                <div className="w-16 h-16 rounded-2xl overflow-hidden shadow-md border border-gray-100 relative group">
+                  <img src={frontImg} alt="Front" className="w-full h-full object-cover" />
+                  <div className="absolute inset-x-0 bottom-0 bg-black/60 text-[9px] font-bold text-white text-center py-0.5 opacity-0 group-hover:opacity-100 transition-opacity">FRONT</div>
+                </div>
+                <div className="w-16 h-16 rounded-2xl overflow-hidden shadow-md border border-gray-100 relative group">
+                  <img src={backImg} alt="Back" className="w-full h-full object-cover" />
+                  <div className="absolute inset-x-0 bottom-0 bg-black/60 text-[9px] font-bold text-white text-center py-0.5 opacity-0 group-hover:opacity-100 transition-opacity">BACK</div>
+                </div>
               </div>
             <div className="flex-1 min-w-[200px]">
               <h1 className="font-extrabold text-xl text-gray-900 font-sora">{medicine.name || query}</h1>

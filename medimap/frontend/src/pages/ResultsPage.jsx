@@ -32,6 +32,10 @@ export default function ResultsPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const query = searchParams.get('q') || '';
+  const [newQuery, setNewQuery] = useState(query);
+  const [results, setResults] = useState([]);
+  const [medicine, setMedicine] = useState(null);
+  const [loading, setLoading] = useState(true);
   // Deterministic generic image for medicines
   const MED_IMAGES = [
     'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=200&h=200&fit=crop&auto=format',
@@ -41,10 +45,6 @@ export default function ResultsPage() {
     'https://images.unsplash.com/photo-1471864190281-a93a3070b6de?w=200&h=200&fit=crop&auto=format'
   ];
   const medImage = MED_IMAGES[((medicine?.name || query)?.length || 0) % MED_IMAGES.length];
-  const [newQuery, setNewQuery] = useState(query);
-  const [results, setResults] = useState([]);
-  const [medicine, setMedicine] = useState(null);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [selectedIdx, setSelectedIdx] = useState(0);
   const [sortBy, setSortBy] = useState('distance'); // distance | price

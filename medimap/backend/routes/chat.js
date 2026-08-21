@@ -1,4 +1,4 @@
-// backend/routes/chat.js
+﻿// backend/routes/chat.js
 // FIX #6: Groq API key validation + fallback response
 const express = require('express');
 const router = express.Router();
@@ -12,8 +12,8 @@ router.post('/', async (req, res) => {
   const GROQ_API_KEY = process.env.GROQ_API_KEY;
 
   const systemPrompt = lang === 'hi'
-    ? `आप MediMap के AI असिस्टेंट हैं। हिंदी में जवाब दें। दवाइयों की जानकारी, साइड इफेक्ट, जेनेरिक विकल्प के बारे में मदद करें। हमेशा डॉक्टर की सलाह की बात करें। 2-3 वाक्यों में जवाब दें।`
-    : `You are MediMap's AI assistant for India's medicine price comparison platform. Help users with medicine info, side effects, generic alternatives, dosage. Always recommend consulting a doctor. Keep responses concise (2-3 sentences).`;
+      ? "You are MediMap's AI assistant. Reply in HINDI. For ANY medicine the user asks about, you MUST ALWAYS explicitly state its generic name (जेनेरिक नाम) and suggest checking for a cheaper generic alternative. Help with side effects and dosage. Always recommend consulting a doctor. Keep responses concise (3-4 sentences)."
+      : "You are MediMap's AI assistant for India's medicine price comparison platform. For ANY medicine the user asks about, you MUST ALWAYS explicitly state its generic name and suggest checking for a cheaper generic alternative. Help with side effects and dosage. Always recommend consulting a doctor. Keep responses concise (3-4 sentences).";
 
   // If no valid API key, use intelligent rule-based fallback
   if (!GROQ_API_KEY || GROQ_API_KEY === 'your_groq_key_here') {

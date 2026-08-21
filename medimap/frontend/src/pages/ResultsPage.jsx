@@ -1,4 +1,4 @@
-// frontend/src/pages/ResultsPage.jsx — Premium Split-View Results with Interactive Leaflet Map
+﻿// frontend/src/pages/ResultsPage.jsx — Premium Split-View Results with Interactive Leaflet Map
 import { useState, useEffect, useRef } from 'react';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { useQuery } from "convex/react";
@@ -32,6 +32,15 @@ export default function ResultsPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const query = searchParams.get('q') || '';
+  // Deterministic generic image for medicines
+  const MED_IMAGES = [
+    'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=200&h=200&fit=crop&auto=format',
+    'https://images.unsplash.com/photo-1628771065518-0d82f1938462?w=200&h=200&fit=crop&auto=format',
+    'https://images.unsplash.com/photo-1607619056574-7b8d3ee536b2?w=200&h=200&fit=crop&auto=format',
+    'https://images.unsplash.com/photo-1550572017-edb30263f350?w=200&h=200&fit=crop&auto=format',
+    'https://images.unsplash.com/photo-1471864190281-a93a3070b6de?w=200&h=200&fit=crop&auto=format'
+  ];
+  const medImage = MED_IMAGES[((medicine?.name || query)?.length || 0) % MED_IMAGES.length];
   const [newQuery, setNewQuery] = useState(query);
   const [results, setResults] = useState([]);
   const [medicine, setMedicine] = useState(null);
@@ -275,11 +284,9 @@ export default function ResultsPage() {
         {/* Medicine info banner */}
         {medicine && !loading && (
           <div className="card p-5 mb-5 flex items-center gap-4 flex-wrap bg-gradient-to-r from-blue-50/50 via-teal-50/20 to-white border-l-4 border-l-blue-500 shadow-sm">
-            <div className="w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-inner" style={{ background: 'rgba(27,110,243,0.1)' }}>
-              <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 9.172V5L8 4z"/>
-              </svg>
-            </div>
+                          <div className="w-16 h-16 rounded-2xl overflow-hidden flex-shrink-0 shadow-md border border-gray-100">
+                <img src={medImage} alt={medicine.name || query} className="w-full h-full object-cover" />
+              </div>
             <div className="flex-1 min-w-[200px]">
               <h1 className="font-extrabold text-xl text-gray-900 font-sora">{medicine.name || query}</h1>
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-sm mt-1">

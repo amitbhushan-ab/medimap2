@@ -1,4 +1,4 @@
-// frontend/src/pages/ScanPrescription.jsx — v2
+﻿// frontend/src/pages/ScanPrescription.jsx — v2
 // FIX: Uses searchName (clean drug name only) for search, not full "Paracetamol 500mg twice a day"
 import { useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
@@ -110,7 +110,75 @@ export default function ScanPrescription() {
 
         {step === 'upload' && (
           <>
-            <div className="card p-6 mb-4"
+                          <div className="bg-[#e5e7eb] rounded-2xl p-6 mb-6 shadow-inner">
+                <h3 className="font-bold text-gray-900 mb-6 text-lg">What is a valid prescription?</h3>
+                
+                <div className="flex flex-col md:flex-row gap-6 mb-6">
+                  <div className="bg-white rounded-2xl p-5 w-full md:w-64 shadow-sm border border-gray-100 flex-shrink-0 text-[10px] text-gray-500 leading-tight">
+                    
+                    <div className="flex items-center relative mb-5">
+                      <div className="flex-1">
+                        <div className="font-bold text-gray-900 text-[13px] mb-0.5">Dr Apurva Kumar</div>
+                        <div>Name of Hospital/Clinic<br/>Address of Hospital/Clinic<br/>Regd. No : 1234567</div>
+                      </div>
+                      <div className="hidden md:flex items-center absolute left-[100%] ml-2 w-16"><div className="h-[2px] w-full border-b-[3px] border-dotted border-purple-300"></div></div>
+                      <div className="hidden md:flex items-center gap-3 absolute left-[100%] ml-[4.5rem] whitespace-nowrap">
+                        <span className="w-7 h-7 rounded-full bg-[#c4b5fd] text-purple-900 flex items-center justify-center text-xs font-bold">1</span>
+                        <span className="text-gray-700 text-[15px] font-medium">Doctor's details</span>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center relative mb-5 mt-8">
+                      <div className="text-blue-500 font-medium tracking-wide text-xs">20-01-2025</div>
+                      <div className="hidden md:flex items-center absolute left-[100%] ml-2 w-16"><div className="h-[2px] w-full border-b-[3px] border-dotted border-purple-300"></div></div>
+                      <div className="hidden md:flex items-center gap-3 absolute left-[100%] ml-[4.5rem] whitespace-nowrap">
+                        <span className="w-7 h-7 rounded-full bg-[#c4b5fd] text-purple-900 flex items-center justify-center text-xs font-bold">2</span>
+                        <span className="text-gray-700 text-[15px] font-medium">Date of prescription</span>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center relative mb-5 mt-8">
+                      <div>
+                        <div style={{ fontFamily: 'cursive', color: '#4f46e5', fontSize: '15px' }}>Meghna Raj</div>
+                        <div className="text-[10px] font-medium mt-0.5">38 Y/F</div>
+                      </div>
+                      <div className="hidden md:flex items-center absolute left-[100%] ml-2 w-16"><div className="h-[2px] w-full border-b-[3px] border-dotted border-purple-300"></div></div>
+                      <div className="hidden md:flex items-center gap-3 absolute left-[100%] ml-[4.5rem] whitespace-nowrap">
+                        <span className="w-7 h-7 rounded-full bg-[#c4b5fd] text-purple-900 flex items-center justify-center text-xs font-bold">3</span>
+                        <span className="text-gray-700 text-[15px] font-medium">Patient's details</span>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center relative mt-8">
+                      <div style={{ fontFamily: 'cursive', color: '#2563eb', fontSize: '13px', lineHeight: '1.6' }}>
+                        Paracetamol - 50mg<br/>
+                        Ibuprofen - 150mg
+                      </div>
+                      <div className="hidden md:flex items-center absolute left-[100%] ml-2 w-16"><div className="h-[2px] w-full border-b-[3px] border-dotted border-purple-300"></div></div>
+                      <div className="hidden md:flex items-center gap-3 absolute left-[100%] ml-[4.5rem] whitespace-nowrap">
+                        <span className="w-7 h-7 rounded-full bg-[#c4b5fd] text-purple-900 flex items-center justify-center text-xs font-bold">4</span>
+                        <span className="text-gray-700 text-[15px] font-medium">Medicines</span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="md:hidden flex flex-col gap-3 mt-2">
+                    {[ "Doctor's details", "Date of prescription", "Patient's details", "Medicines" ].map((lbl, i) => (
+                      <div key={i} className="flex items-center gap-3">
+                        <span className="w-7 h-7 rounded-full bg-[#c4b5fd] text-purple-900 flex items-center justify-center text-xs font-bold shadow-sm">{i+1}</span>
+                        <span className="text-gray-800 text-[15px] font-medium">{lbl}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <ul className="list-disc pl-5 text-[14px] text-gray-700 space-y-2 font-medium">
+                  <li>Include details of doctor, patient & date of visit</li>
+                  <li>Supported files: <span className="font-bold">PNG, JPEG, PDF</span></li>
+                  <li>File size limit: <span className="font-bold">5MB</span></li>
+                </ul>
+              </div>
+              <div className="card p-6 mb-4"
               onClick={() => fileRef.current.click()}
               onDragOver={e=>e.preventDefault()}
               onDrop={e=>{e.preventDefault();const f=e.dataTransfer.files[0];if(f)handleFile({target:{files:[f]}});}}

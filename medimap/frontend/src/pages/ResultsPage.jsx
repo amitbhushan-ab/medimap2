@@ -39,8 +39,8 @@ export default function ResultsPage() {
   // Real packaging image mapping for seeded demo medicines
   const BRAND_IMAGES = {
     'paracetamol': { 
-      f: 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=300&h=300&fit=crop', 
-      b: 'https://upload.wikimedia.org/wikipedia/commons/1/1c/Cold_Form_Foil_blister_pack2.jpg' 
+      f: 'https://zeelabpharmacy.com/uploads/other_brand_image/Zee67ed351a53824.jpeg', 
+      b: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSki3mJGbwAFFjq7Z3bcZ9ZHqu5D1BGOF8l0d3tgsW5aA&s=10' 
     },
     'amoxicillin': { 
       f: 'https://images.unsplash.com/photo-1628771065518-0d82f1938462?w=300&h=300&fit=crop', 

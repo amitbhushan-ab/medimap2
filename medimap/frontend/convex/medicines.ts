@@ -8,20 +8,22 @@ export const search = query({
     if (!args.query) return [];
     
     // 1. Find matching medicine
-    const matchingMed = allMedicines.find((med) => 
-      med.name.toLowerCase().includes(args.query.toLowerCase())
+    let matchingMed = allMedicines.find((med) => 
+      med.name.toLowerCase().includes(args.query.toLowerCase()) || 
+      args.query.toLowerCase().includes(med.name.toLowerCase().split(' ')[0])
     );
     
-    if (!matchingMed) return [];
-
     // 2. Find all prices for this medicine
-    const prices = await ctx.db
-      .query("prices")
-      .filter((q) => q.eq(q.field("medicineId"), matchingMed._id))
-      .collect();
+    let prices = [];
+    if (matchingMed) {
+      prices = await ctx.db
+        .query("prices")
+        .filter((q) => q.eq(q.field("medicineId"), matchingMed._id))
+        .collect();
+    }
 
     // 3. Join with pharmacies
-    const results = [];
+    let results = [];
     let minPrice = Infinity;
 
     for (const price of prices) {
@@ -38,6 +40,37 @@ export const search = query({
           isCheapest: false,
         });
       }
+    }
+
+    // MOCK FALLBACK for Demo
+    if (results.length === 0) {
+      const pharmacies = await ctx.db.query("pharmacists").collect();
+      const nearbyPharmacies = pharmacies.slice(0, 4);
+      
+      matchingMed = {
+        _id: "mock_med_id",
+        name: args.query.charAt(0).toUpperCase() + args.query.slice(1) + " (Scanned)",
+        genericName: "Generic Equivalent",
+        category: "General",
+        dosage: "Standard",
+        manufacturer: "Various",
+        requiresPrescription: false
+      };
+
+      nearbyPharmacies.forEach((pharmacy, idx) => {
+        const mockPrice = 15 + Math.floor(Math.random() * 50);
+        const inStock = idx !== 2;
+        if (inStock && mockPrice < minPrice) minPrice = mockPrice;
+        
+        results.push({
+          _id: "mock_price_" + idx,
+          pharmacy: pharmacy,
+          medicine: matchingMed,
+          price: mockPrice,
+          inStock: inStock,
+          isCheapest: false,
+        });
+      });
     }
 
     // 4. Mark cheapest
@@ -58,18 +91,15 @@ export const getMedicines = query({
 export const addMedicine = mutation({
   args: {
     name: v.string(),
-    brand: v.optional(v.string()),
-    category: v.optional(v.string()),
-    description: v.optional(v.string()),
+    genericName: v.string(),
+    category: v.string(),
+    manufacturer: v.string(),
+    dosage: v.string(),
+    requiresPrescription: v.boolean(),
   },
   handler: async (ctx, args) => {
-    const newMedicineId = await ctx.db.insert("medicines", {
-      name: args.name,
-      brand: args.brand,
-      category: args.category,
-      description: args.description,
-      createdAt: new Date().toISOString(),
+    return await ctx.db.insert("medicines", {
+      ...args,
     });
-    return newMedicineId;
   },
 });

@@ -1,21 +1,21 @@
-import { useState, useEffect, useRef } from 'react';
+﻿import { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useLang } from '../context/LanguageContext';
 
 const POPULAR_EN = ['Paracetamol 500mg', 'Azithromycin 500mg', 'Metformin 500mg', 'Cetirizine 10mg'];
 const POPULAR_HI = ['पैरासिटामोल', 'एज़िथ्रोमाइसिन', 'मेटफ़ॉर्मिन', 'सिट्रीज़िन'];
 const STATS_DATA = [
-  { value: '500+', en: 'Pharmacies', hi: 'फार्मेसियां', icon: '🏥', color: 'from-blue-400 to-blue-600' },
-  { value: '2,000+', en: 'Medicines', hi: 'दवाइयां', icon: '💊', color: 'from-teal-400 to-teal-600' },
-  { value: '₹340', en: 'Avg Savings', hi: 'औसत बचत', icon: '💰', color: 'from-emerald-400 to-emerald-600' },
-  { value: '4.9★', en: 'Rating', hi: 'रेटिंग', icon: '⭐', color: 'from-amber-400 to-amber-600' },
+  { value: '500+', en: 'Pharmacies', hi: 'फार्मेसियां', icon: <svg width="28" height="28" viewBox="0 0 24 24" fill="white"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-8 13h-2v-3H6v-2h3V8h2v3h3v2h-3v3z"/></svg>, color: 'from-blue-400 to-blue-600' },
+  { value: '2,000+', en: 'Medicines', hi: 'दवाइयां', icon: <svg width="28" height="28" viewBox="0 0 24 24" fill="white"><path d="M18.17 6.48l-2.65-2.65c-1.17-1.17-3.07-1.17-4.24 0L3.83 11.28c-1.17 1.17-1.17 3.07 0 4.24l2.65 2.65c1.17 1.17 3.07 1.17 4.24 0l7.45-7.45c1.17-1.17 1.17-3.07 0-4.24zM8.59 16.76l-2.65-2.65 6.03-6.03 2.65 2.65-6.03 6.03z"/></svg>, color: 'from-teal-400 to-teal-600' },
+  { value: '₹340', en: 'Avg Savings', hi: 'औसत बचत', icon: <svg width="28" height="28" viewBox="0 0 24 24" fill="white"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-1.07A2 2 0 0 1 9.5 14h3v-2H9.5a2 2 0 0 1-2-2v-.5h2V10.5h2v-1.07c.84.18 1.5 1.05 1.5 1.93h-3v2h3a2 2 0 0 1 2 2v.5h-2v1.14z"/></svg>, color: 'from-emerald-400 to-emerald-600' },
+  { value: '4.9★', en: 'Rating', hi: 'रेटिंग', icon: <svg width="28" height="28" viewBox="0 0 24 24" fill="white"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>, color: 'from-amber-400 to-amber-600' },
 ];
 
 const FEATURES_BENTO = [
-  { icon: '🔍', titleEn: 'Real-time Search', titleHi: 'रियल-टाइम खोज', descEn: 'Compare prices instantly across all nearby pharmacies to secure the best deal.', descHi: 'सबसे अच्छी डील के लिए पास की फार्मेसियों में तुरंत कीमतें तुलना करें।', colSpan: 'col-span-1 md:col-span-2' },
-  { icon: '📋', titleEn: 'AI Prescription Scanner', titleHi: 'AI पर्ची स्कैनर', descEn: 'Upload your prescription and let our AI extract all medicines automatically.', descHi: 'पर्ची अपलोड करें — AI सभी दवाइयां अपने आप निकाल देगा।', colSpan: 'col-span-1' },
-  { icon: '🗺️', titleEn: 'Live Map View', titleHi: 'लाइव मैप', descEn: 'Locate the nearest and most affordable pharmacy on an interactive map.', descHi: 'इंटरैक्टिव मैप पर सबसे नज़दीक और सस्ती फार्मेसी खोजें।', colSpan: 'col-span-1' },
-  { icon: '💊', titleEn: 'Generic Alternatives', titleHi: 'जेनेरिक विकल्प', descEn: 'Save up to 60% with highly effective equivalent generic medicines.', descHi: 'समान जेनेरिक दवाइयों के साथ 60% तक की भारी बचत करें।', colSpan: 'col-span-1 md:col-span-2' },
+  { icon: <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0016 9.5 6.5 6.5 0 109.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>, titleEn: 'Real-time Search', titleHi: 'रियल-टाइम खोज', descEn: 'Compare prices instantly across all nearby pharmacies to secure the best deal.', descHi: 'सबसे अच्छी डील के लिए पास की फार्मेसियों में तुरंत कीमतें तुलना करें।', colSpan: 'col-span-1 md:col-span-2' },
+  { icon: <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>, titleEn: 'AI Prescription Scanner', titleHi: 'AI पर्ची स्कैनर', descEn: 'Upload your prescription and let our AI extract all medicines automatically.', descHi: 'पर्ची अपलोड करें — AI सभी दवाइयां अपने आप निकाल देगा।', colSpan: 'col-span-1' },
+  { icon: <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 010-5 2.5 2.5 0 010 5z"/></svg>, titleEn: 'Live Map View', titleHi: 'लाइव मैप', descEn: 'Locate the nearest and most affordable pharmacy on an interactive map.', descHi: 'इंटरैक्टिव मैप पर सबसे नज़दीक और सस्ती फार्मेसी खोजें।', colSpan: 'col-span-1' },
+  { icon: <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor"><path d="M18.17 6.48l-2.65-2.65c-1.17-1.17-3.07-1.17-4.24 0L3.83 11.28c-1.17 1.17-1.17 3.07 0 4.24l2.65 2.65c1.17 1.17 3.07 1.17 4.24 0l7.45-7.45c1.17-1.17 1.17-3.07 0-4.24zM8.59 16.76l-2.65-2.65 6.03-6.03 2.65 2.65-6.03 6.03z"/></svg>, titleEn: 'Generic Alternatives', titleHi: 'जेनेरिक विकल्प', descEn: 'Save up to 60% with highly effective equivalent generic medicines.', descHi: 'समान जेनेरिक दवाइयों के साथ 60% तक की भारी बचत करें।', colSpan: 'col-span-1 md:col-span-2' },
 ];
 
 const STEPS_DATA = [
@@ -300,10 +300,10 @@ export default function HomePage() {
 
           <div className="mt-12 flex justify-center gap-4 flex-wrap">
             <Link to="/scan" className="btn-primary !px-8 !py-4 !text-base !rounded-2xl shadow-xl shadow-blue-500/20">
-              📋 {lang === 'hi' ? 'पर्ची स्कैन करें' : 'Try AI Scanner'}
+              <div style={{display:'flex', alignItems:'center', gap:'8px'}}><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg> {lang === 'hi' ? 'एआई स्कैनर आजमाएं' : 'Try AI Scanner'}</div>
             </Link>
             <Link to="/map" className="btn-secondary !px-8 !py-4 !text-base !rounded-2xl bg-white">
-              🗺️ {lang === 'hi' ? 'मैप देखें' : 'Explore Map View'}
+              <div style={{display:'flex', alignItems:'center', gap:'8px'}}><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 010-5 2.5 2.5 0 010 5z"/></svg> {lang === 'hi' ? 'मैप एक्सप्लोर करें' : 'Explore Map View'}</div>
             </Link>
           </div>
         </div>

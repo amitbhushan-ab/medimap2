@@ -1,4 +1,4 @@
-// frontend/src/pages/ProfilePage.jsx
+﻿// frontend/src/pages/ProfilePage.jsx
 // Customer Dashboard with MediPoints integrated
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
@@ -15,8 +15,16 @@ function timeAgo(dateStr, lang) {
   if (diff < 86400) return `${Math.floor(diff/3600)}h ago`;
   return `${Math.floor(diff/86400)}d ago`;
 }
-function Stars({ rating }) {
-  return <span>{[1,2,3,4,5].map(s => <span key={s} style={{color: s<=rating?'#f59e0b':'#e5e7eb'}}>★</span>)}</span>;
+function Stars({ rating }) { 
+  return (
+    <div className="flex gap-1">
+      {[1,2,3,4,5].map(s => (
+        <svg key={s} className={"w-4 h-4 ${s<=rating?'text-amber-400':'text-gray-200'}"} fill="currentColor" viewBox="0 0 20 20">
+          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+        </svg>
+      ))}
+    </div>
+  ); 
 }
 
 const DEFAULT_SAVED = [
@@ -39,9 +47,9 @@ const DEFAULT_SAVINGS = {
 };
 
 const POINT_TIERS = [
-  { tier:1, points:500,  discount:20, icon:'🥉', color:'from-amber-400 to-orange-500' },
-  { tier:2, points:1000, discount:30, icon:'🥈', color:'from-gray-400 to-gray-500' },
-  { tier:3, points:2000, discount:50, icon:'🥇', color:'from-yellow-400 to-amber-500' },
+  { tier:1, points:500,  discount:20, icon:'', color:'from-amber-400 to-orange-500' },
+  { tier:2, points:1000, discount:30, icon:'', color:'from-gray-400 to-gray-500' },
+  { tier:3, points:2000, discount:50, icon:'', color:'from-yellow-400 to-amber-500' },
 ];
 
 function TabBtn({ active, onClick, icon, label, badge }) {
@@ -111,13 +119,13 @@ function PointsTab({ userId }) {
       </div>
 
       {/* How to earn */}
-      <div className="card p-4 mb-4">
+      <div className="bg-white p-6 shadow-sm border border-gray-100 rounded-3xl mb-6 mb-4">
         <p className="font-semibold text-gray-900 mb-3">💡 {lang === 'hi' ? 'पॉइंट्स कैसे कमाएं' : 'How to Earn'}</p>
         <div className="space-y-2">
           {[
-            { icon:'📸', labelEn:'Submit price (approved)', labelHi:'कीमत जमा करें (स्वीकृत)', pts:'+20' },
-            { icon:'⭐', labelEn:'Rate a pharmacy', labelHi:'फार्मेसी को रेट करें', pts:'+5' },
-            { icon:'👤', labelEn:'Complete profile', labelHi:'प्रोफ़ाइल पूरी करें', pts:'+10' },
+            { icon:'', labelEn:'Submit price (approved)', labelHi:'कीमत जमा करें (स्वीकृत)', pts:'+20' },
+            { icon:'', labelEn:'Rate a pharmacy', labelHi:'फार्मेसी को रेट करें', pts:'+5' },
+            { icon:'', labelEn:'Complete profile', labelHi:'प्रोफ़ाइल पूरी करें', pts:'+10' },
           ].map((item,i) => (
             <div key={i} className="flex items-center gap-3 p-2.5 bg-gray-50 rounded-xl">
               <span className="text-lg">{item.icon}</span>
@@ -130,7 +138,7 @@ function PointsTab({ userId }) {
       </div>
 
       {/* Redeem */}
-      <div className="card p-4 mb-4">
+      <div className="bg-white p-6 shadow-sm border border-gray-100 rounded-3xl mb-6 mb-4">
         <p className="font-semibold text-gray-900 mb-3">🎁 {lang === 'hi' ? 'इनाम भुनाएं' : 'Redeem Rewards'}</p>
         <div className="space-y-3">
           {POINT_TIERS.map(tier => {
@@ -140,7 +148,7 @@ function PointsTab({ userId }) {
                 <div className="flex items-center gap-3">
                   <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${tier.color} flex items-center justify-center text-xl flex-shrink-0`}>{tier.icon}</div>
                   <div className="flex-1">
-                    <p className="font-bold text-gray-900 text-sm">{tier.discount}% {lang === 'hi' ? 'छूट कूपन' : 'OFF Coupon'}</p>
+                    <p className="font-bold text-gray-900 text-base font-semibold">{tier.discount}% {lang === 'hi' ? 'छूट कूपन' : 'OFF Coupon'}</p>
                     <p className="text-xs text-[#2E7DFF]">{tier.points} {lang === 'hi' ? 'पॉइंट्स' : 'points'}</p>
                   </div>
                   <button onClick={() => canRedeem && redeem(tier.tier)} disabled={!canRedeem || redeeming===tier.tier}
@@ -156,7 +164,7 @@ function PointsTab({ userId }) {
 
       {/* Coupons */}
       {coupons.length > 0 && (
-        <div className="card p-4 mb-4">
+        <div className="bg-white p-6 shadow-sm border border-gray-100 rounded-3xl mb-6 mb-4">
           <p className="font-semibold text-gray-900 mb-3">🎟️ {lang === 'hi' ? 'मेरे कूपन' : 'My Coupons'}</p>
           {coupons.map(c => (
             <div key={c.id} className="flex items-center justify-between p-3 border-2 border-dashed border-[#2E7DFF] bg-blue-50 rounded-xl mb-2">
@@ -169,7 +177,7 @@ function PointsTab({ userId }) {
 
       {/* History */}
       {transactions.length > 0 && (
-        <div className="card p-4">
+        <div className="bg-white p-6 shadow-sm border border-gray-100 rounded-3xl mb-6">
           <p className="font-semibold text-gray-900 mb-3">📋 {lang === 'hi' ? 'पॉइंट्स इतिहास' : 'Points History'}</p>
           {transactions.slice(0,8).map(tx => (
             <div key={tx.id} className="flex justify-between py-2 border-b border-gray-50 last:border-0">
@@ -188,7 +196,7 @@ function HistoryTab({ navigate }) {
   const { lang } = useLang();
   const history = JSON.parse(localStorage.getItem('medimap_search_history')||'[]');
   if (!history.length) return (
-    <div className="card p-10 text-center">
+    <div className="bg-white p-10 shadow-sm border border-gray-100 rounded-3xl mb-6 text-center">
       <div className="text-4xl mb-3">🔍</div>
       <p className="text-gray-500 font-medium">{lang === 'hi' ? 'अभी तक कोई खोज इतिहास नहीं' : 'No search history yet'}</p>
       <Link to="/" className="btn-primary mt-4 inline-block text-sm">{lang === 'hi' ? 'अभी खोजें' : 'Search Now'}</Link>
@@ -197,10 +205,10 @@ function HistoryTab({ navigate }) {
   return (
     <div className="space-y-2">
       {history.map((item,i) => (
-        <div key={i} className="card p-4 flex items-center justify-between gap-4">
+        <div key={i} className="bg-white p-6 shadow-sm border border-gray-100 rounded-3xl mb-6 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center">🔍</div>
-            <div><p className="font-medium text-gray-900 text-sm">{item.query}</p><p className="text-xs text-gray-400">{timeAgo(item.date, lang)}</p></div>
+            <div><p className="font-medium text-gray-900 text-base font-semibold">{item.query}</p><p className="text-xs text-gray-400">{timeAgo(item.date, lang)}</p></div>
           </div>
           <button onClick={() => navigate(`/results?q=${encodeURIComponent(item.query)}`)} className="btn-secondary text-xs !py-1.5 !px-3">{lang === 'hi' ? 'फिर खोजें →' : 'Search Again →'}</button>
         </div>
@@ -215,15 +223,15 @@ function SavedTab() {
   const { lang } = useLang();
   const [pharmacies, setPharmacies] = useState(JSON.parse(localStorage.getItem('medimap_saved_pharmacies')||JSON.stringify(DEFAULT_SAVED)));
   const remove = (id) => { const u=pharmacies.filter(p=>p.id!==id); setPharmacies(u); localStorage.setItem('medimap_saved_pharmacies',JSON.stringify(u)); };
-  if (!pharmacies.length) return <div className="card p-10 text-center"><div className="text-4xl mb-3">🏥</div><p className="text-gray-500">{lang === 'hi' ? 'कोई सेव की हुई फार्मेसी नहीं' : 'No saved pharmacies'}</p></div>;
+  if (!pharmacies.length) return <div className="bg-white p-10 shadow-sm border border-gray-100 rounded-3xl mb-6 text-center"><div className="text-4xl mb-3">🏥</div><p className="text-gray-500">{lang === 'hi' ? 'कोई सेव की हुई फार्मेसी नहीं' : 'No saved pharmacies'}</p></div>;
   return (
     <div className="space-y-3">
       {pharmacies.map(p => (
-        <div key={p.id} className="card p-4 flex items-start justify-between gap-3">
+        <div key={p.id} className="bg-white p-6 shadow-sm border border-gray-100 rounded-3xl mb-6 flex items-start justify-between gap-3">
           <div className="flex items-start gap-3">
             <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-xl flex-shrink-0">🏥</div>
             <div>
-              <p className="font-semibold text-gray-900 text-sm">{p.name}</p>
+              <p className="font-semibold text-gray-900 text-base font-semibold">{p.name}</p>
               <p className="text-xs text-gray-400">{p.address}</p>
               <div className="flex gap-3 mt-1">
                 <span className="text-xs text-yellow-500">⭐ {p.rating}</span>
@@ -246,13 +254,13 @@ function ReviewsTab() {
   const { lang } = useLang();
   const [reviews, setReviews] = useState(JSON.parse(localStorage.getItem('medimap_my_reviews')||JSON.stringify(DEFAULT_REVIEWS)));
   const remove = (id) => { const u=reviews.filter(r=>r.id!==id); setReviews(u); localStorage.setItem('medimap_my_reviews',JSON.stringify(u)); };
-  if (!reviews.length) return <div className="card p-10 text-center"><div className="text-4xl mb-3">⭐</div><p className="text-gray-500">{lang === 'hi' ? 'अभी कोई समीक्षा नहीं' : 'No reviews yet'}</p></div>;
+  if (!reviews.length) return <div className="bg-white p-10 shadow-sm border border-gray-100 rounded-3xl mb-6 text-center"><div className="text-4xl mb-3">⭐</div><p className="text-gray-500">{lang === 'hi' ? 'अभी कोई समीक्षा नहीं' : 'No reviews yet'}</p></div>;
   return (
     <div className="space-y-3">
       {reviews.map(r => (
-        <div key={r.id} className="card p-4">
+        <div key={r.id} className="bg-white p-6 shadow-sm border border-gray-100 rounded-3xl mb-6">
           <div className="flex justify-between mb-2">
-            <div><p className="font-semibold text-gray-900 text-sm">{r.pharmacyName}</p><Stars rating={r.rating} /></div>
+            <div><p className="font-semibold text-gray-900 text-base font-semibold">{r.pharmacyName}</p><Stars rating={r.rating} /></div>
             <button onClick={()=>remove(r.id)} className="text-xs text-red-400">{lang === 'hi' ? 'हटाएं' : 'Delete'}</button>
           </div>
           {r.review && <p className="text-sm text-gray-600 bg-gray-50 rounded-xl p-3 italic">"{r.review}"</p>}
@@ -284,7 +292,7 @@ function AlertsTab() {
         {showAdd ? (lang === 'hi' ? '✕ रद्द करें' : '✕ Cancel') : (lang === 'hi' ? '+ कीमत अलर्ट जोड़ें' : '+ Add Price Alert')}
       </button>
       {showAdd && (
-        <div className="card p-4 mb-4 border-2 border-[#2E7DFF]">
+        <div className="bg-white p-6 shadow-sm border border-gray-100 rounded-3xl mb-6 mb-4 border-2 border-[#2E7DFF]">
           <div className="space-y-2">
             <input className="input-field" placeholder={lang === 'hi' ? 'दवा का नाम' : 'Medicine name'} value={form.medicine} onChange={e=>setForm({...form,medicine:e.target.value})} />
             <input className="input-field" type="number" placeholder={lang === 'hi' ? 'लक्ष्य कीमत (₹)' : 'Target price (₹)'} value={form.targetPrice} onChange={e=>setForm({...form,targetPrice:e.target.value})} />
@@ -300,7 +308,7 @@ function AlertsTab() {
             <div key={a.id} className={`card p-4 border-l-4 ${reached?'border-emerald-500':a.active?'border-[#2E7DFF]':'border-gray-200'}`}>
               <div className="flex items-start justify-between">
                 <div>
-                  <p className="font-semibold text-gray-900 text-sm">{a.medicine}</p>
+                  <p className="font-semibold text-gray-900 text-base font-semibold">{a.medicine}</p>
                   <p className="text-xs text-gray-400">{a.pharmacy}</p>
                   <div className="flex gap-4 mt-2">
                     <div><p className="text-xs text-gray-400">{lang === 'hi' ? 'लक्ष्य' : 'Target'}</p><p className="font-bold text-[#2E7DFF] text-sm">₹{a.targetPrice}</p></div>
@@ -330,16 +338,16 @@ function SavingsTab() {
   return (
     <div>
       <div className="grid grid-cols-2 gap-3 mb-5">
-        <div className="card p-4 text-center bg-gradient-to-br from-emerald-50 to-teal-50 border-emerald-100">
+        <div className="bg-white p-6 shadow-sm border border-gray-100 rounded-3xl mb-6 text-center bg-gradient-to-br from-emerald-50 to-teal-50 border-emerald-100">
           <p className="text-xs text-emerald-600 font-medium mb-1">{lang === 'hi' ? 'कुल बचत' : 'Total Saved'}</p>
           <p className="text-3xl font-bold text-emerald-600">₹{savings.total}</p>
         </div>
-        <div className="card p-4 text-center bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-100">
+        <div className="bg-white p-6 shadow-sm border border-gray-100 rounded-3xl mb-6 text-center bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-100">
           <p className="text-xs text-[#2E7DFF] font-medium mb-1">{lang === 'hi' ? 'इस महीने' : 'This Month'}</p>
           <p className="text-3xl font-bold text-[#2E7DFF]">₹{savings.thisMonth}</p>
         </div>
       </div>
-      <div className="card p-4">
+      <div className="bg-white p-6 shadow-sm border border-gray-100 rounded-3xl mb-6">
         <p className="font-semibold text-gray-900 mb-3">{lang === 'hi' ? 'हाल की बचत' : 'Recent Savings'}</p>
         {savings.transactions.map((t,i) => (
           <div key={i} className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
@@ -385,12 +393,12 @@ export default function ProfilePage() {
   if (!user) return null;
 
   const TABS = [
-    { id:'points',    icon:'🏆', label: lang === 'hi' ? 'मेडीपॉइंट्स' : 'MediPoints' },
-    { id:'history',   icon:'🔍', label: lang === 'hi' ? 'इतिहास' : 'History',   badge: searchHistory.length },
-    { id:'saved',     icon:'🏥', label: lang === 'hi' ? 'सेव किए' : 'Saved' },
-    { id:'reviews',   icon:'⭐', label: lang === 'hi' ? 'समीक्षाएं' : 'Reviews' },
-    { id:'alerts',    icon:'🔔', label: lang === 'hi' ? 'अलर्ट' : 'Alerts',    badge: pendingAlerts },
-    { id:'savings',   icon:'💰', label: lang === 'hi' ? 'बचत' : 'Savings' },
+    { id:'points',    icon:'', label: lang === 'hi' ? 'मेडीपॉइंट्स' : 'MediPoints' },
+    { id:'history',   icon:'', label: lang === 'hi' ? 'इतिहास' : 'History',   badge: searchHistory.length },
+    { id:'saved',     icon:'', label: lang === 'hi' ? 'सेव किए' : 'Saved' },
+    { id:'reviews',   icon:'', label: lang === 'hi' ? 'समीक्षाएं' : 'Reviews' },
+    { id:'alerts',    icon:'', label: lang === 'hi' ? 'अलर्ट' : 'Alerts',    badge: pendingAlerts },
+    { id:'savings',   icon:'', label: lang === 'hi' ? 'बचत' : 'Savings' },
   ];
 
   return (
@@ -431,10 +439,10 @@ export default function ProfilePage() {
         {/* Stats */}
         <div className="grid grid-cols-4 gap-2 mt-5 pt-4 border-t border-gray-100">
           {[
-            { icon:'🔍', labelEn:'Searches', labelHi:'खोजें', value: searchHistory.length||0 },
-            { icon:'🏥', labelEn:'Saved', labelHi:'सेव', value: JSON.parse(localStorage.getItem('medimap_saved_pharmacies')||'[]').length||2 },
-            { icon:'🏆', labelEn:'Points', labelHi:'पॉइंट्स', value: '—' },
-            { icon:'💰', labelEn:'Saved', labelHi:'बचत', value: `₹${DEFAULT_SAVINGS.total}` },
+            { icon:'', labelEn:'Searches', labelHi:'खोजें', value: searchHistory.length||0 },
+            { icon:'', labelEn:'Saved', labelHi:'सेव', value: JSON.parse(localStorage.getItem('medimap_saved_pharmacies')||'[]').length||2 },
+            { icon:'', labelEn:'Points', labelHi:'पॉइंट्स', value: '—' },
+            { icon:'', labelEn:'Saved', labelHi:'बचत', value: `₹${DEFAULT_SAVINGS.total}` },
           ].map(s => (
             <div key={s.labelEn} className="text-center p-2 rounded-xl bg-gray-50">
               <div className="text-xl">{s.icon}</div>

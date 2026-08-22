@@ -102,10 +102,7 @@ export default function ScanPrescription() {
           <p className="text-sm" style={{ color:'var(--text-secondary)' }}>
             {lang==='hi'?'पर्ची अपलोड करें — AI दवाइयां निकाल देगा':'Upload prescription — AI extracts medicines automatically'}
           </p>
-          <div className="mt-3 inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold"
-            style={{ background:'rgba(18,183,106,0.1)', color:'#12B76A', border:'1px solid rgba(18,183,106,0.2)' }}>
-            ✅ No API Key needed — Tesseract AI
-          </div>
+          
         </div>
 
         {step === 'upload' && (

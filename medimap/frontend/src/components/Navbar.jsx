@@ -1,4 +1,4 @@
-// src/components/Navbar.jsx — FIXED: fixed positioning, pharmacist support, full Hindi
+﻿// src/components/Navbar.jsx — FIXED: fixed positioning, pharmacist support, full Hindi
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useState, useEffect, useRef } from 'react';
 import { useLang } from '../context/LanguageContext';
@@ -125,9 +125,19 @@ export default function Navbar() {
               style={{ width:36, height:36, borderRadius:8, border:`1px solid ${frosted?'var(--border)':'rgba(255,255,255,0.25)'}`, background: frosted ? 'var(--bg-card)' : 'rgba(255,255,255,0.1)', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}>
               {dark
                 ? <svg className="w-4 h-4 text-yellow-400" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" clipRule="evenodd"/></svg>
-                : <svg className="w-4 h-4" style={{ color: frosted ? 'var(--text-secondary)' : 'white' }} fill="currentColor" viewBox="0 0 20 20"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"/></svg>
-              }
-            </button>
+                : <svg className="w-4 h-4" style={{ color: frosted ? 'var(--text-secondary)' : 'white' }} fill="currentColor" viewBox="0 0 20 20"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"/></svg>                }
+              </button>
+  
+              {/* Notifications */}
+              <button title="Notifications" onClick={() => alert('No new medicine alerts.')}
+                style={{ position:'relative', width:36, height:36, borderRadius:8, border:"1px solid ${frosted?'var(--border)':'rgba(255,255,255,0.25)'}", background: frosted ? 'var(--bg-card)' : 'rgba(255,255,255,0.1)', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', color: frosted ? 'var(--text-secondary)' : 'white', transition:'all 0.2s' }}
+                onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.05)'}
+                onMouseLeave={e => e.currentTarget.style.transform = 'none'}>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                </svg>
+                <span style={{ position:'absolute', top:7, right:8, width:7, height:7, backgroundColor:'#ef4444', borderRadius:'50%', border:"1.5px solid ${frosted?'var(--bg-card)':'#1B6EF3'}"" }}></span>
+              </button>
 
             {/* Auth */}
             {isLoggedIn ? (
@@ -168,8 +178,19 @@ export default function Navbar() {
                         style={{ width:'100%', display:'flex', alignItems:'center', gap:10, padding:'10px 16px', fontSize:13, fontWeight:500, color:'#dc2626', background:'none', border:'none', cursor:'pointer', textAlign:'left' }}
                         onMouseEnter={e => e.currentTarget.style.background = '#fef2f2'}
                         onMouseLeave={e => e.currentTarget.style.background = 'none'}>
-                        <span>🚪</span> {t('logout')}
-                      </button>
+                        <span>🚪</span> {t('logout')                }
+              </button>
+  
+              {/* Notifications */}
+              <button title="Notifications" onClick={() => alert('No new medicine alerts.')}
+                style={{ position:'relative', width:36, height:36, borderRadius:8, border:"1px solid ${frosted?'var(--border)':'rgba(255,255,255,0.25)'}", background: frosted ? 'var(--bg-card)' : 'rgba(255,255,255,0.1)', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', color: frosted ? 'var(--text-secondary)' : 'white', transition:'all 0.2s' }}
+                onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.05)'}
+                onMouseLeave={e => e.currentTarget.style.transform = 'none'}>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                </svg>
+                <span style={{ position:'absolute', top:7, right:8, width:7, height:7, backgroundColor:'#ef4444', borderRadius:'50%', border:"1.5px solid ${frosted?'var(--bg-card)':'#1B6EF3'}"" }}></span>
+              </button>
                     </div>
                   </div>
                 )}
@@ -178,13 +199,35 @@ export default function Navbar() {
               <div style={{ display:'flex', gap:8 }} className="hidden md:flex">
                 <Link to="/login">
                   <button style={{ padding:'8px 16px', borderRadius:10, border:`1px solid ${frosted?'var(--border)':'rgba(255,255,255,0.3)'}`, background:'transparent', color: frosted ? 'var(--text-primary)' : 'white', fontSize:14, fontWeight:600, cursor:'pointer' }}>
-                    {t('login')}
-                  </button>
+                    {t('login')                }
+              </button>
+  
+              {/* Notifications */}
+              <button title="Notifications" onClick={() => alert('No new medicine alerts.')}
+                style={{ position:'relative', width:36, height:36, borderRadius:8, border:"1px solid ${frosted?'var(--border)':'rgba(255,255,255,0.25)'}", background: frosted ? 'var(--bg-card)' : 'rgba(255,255,255,0.1)', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', color: frosted ? 'var(--text-secondary)' : 'white', transition:'all 0.2s' }}
+                onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.05)'}
+                onMouseLeave={e => e.currentTarget.style.transform = 'none'}>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                </svg>
+                <span style={{ position:'absolute', top:7, right:8, width:7, height:7, backgroundColor:'#ef4444', borderRadius:'50%', border:"1.5px solid ${frosted?'var(--bg-card)':'#1B6EF3'}"" }}></span>
+              </button>
                 </Link>
                 <Link to="/signup">
                   <button style={{ padding:'8px 18px', borderRadius:10, background:'linear-gradient(135deg,#1B6EF3,#00C2A8)', color:'white', border:'none', fontSize:14, fontWeight:700, cursor:'pointer', fontFamily:'Sora, sans-serif' }}>
-                    {t('signup')}
-                  </button>
+                    {t('signup')                }
+              </button>
+  
+              {/* Notifications */}
+              <button title="Notifications" onClick={() => alert('No new medicine alerts.')}
+                style={{ position:'relative', width:36, height:36, borderRadius:8, border:"1px solid ${frosted?'var(--border)':'rgba(255,255,255,0.25)'}", background: frosted ? 'var(--bg-card)' : 'rgba(255,255,255,0.1)', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', color: frosted ? 'var(--text-secondary)' : 'white', transition:'all 0.2s' }}
+                onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.05)'}
+                onMouseLeave={e => e.currentTarget.style.transform = 'none'}>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                </svg>
+                <span style={{ position:'absolute', top:7, right:8, width:7, height:7, backgroundColor:'#ef4444', borderRadius:'50%', border:"1.5px solid ${frosted?'var(--bg-card)':'#1B6EF3'}"" }}></span>
+              </button>
                 </Link>
               </div>
             )}
@@ -216,20 +259,53 @@ export default function Navbar() {
               <div style={{ display:'flex', gap:8, padding:'8px 16px', marginTop:8 }}>
                 <Link to="/login" onClick={() => setMenuOpen(false)} style={{ flex:1 }}>
                   <button style={{ width:'100%', padding:'10px', borderRadius:10, border:'1.5px solid var(--border)', background:'var(--bg-card)', color:'var(--text-primary)', fontSize:14, fontWeight:600, cursor:'pointer' }}>
-                    {t('login')}
-                  </button>
+                    {t('login')                }
+              </button>
+  
+              {/* Notifications */}
+              <button title="Notifications" onClick={() => alert('No new medicine alerts.')}
+                style={{ position:'relative', width:36, height:36, borderRadius:8, border:"1px solid ${frosted?'var(--border)':'rgba(255,255,255,0.25)'}", background: frosted ? 'var(--bg-card)' : 'rgba(255,255,255,0.1)', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', color: frosted ? 'var(--text-secondary)' : 'white', transition:'all 0.2s' }}
+                onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.05)'}
+                onMouseLeave={e => e.currentTarget.style.transform = 'none'}>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                </svg>
+                <span style={{ position:'absolute', top:7, right:8, width:7, height:7, backgroundColor:'#ef4444', borderRadius:'50%', border:"1.5px solid ${frosted?'var(--bg-card)':'#1B6EF3'}"" }}></span>
+              </button>
                 </Link>
                 <Link to="/signup" onClick={() => setMenuOpen(false)} style={{ flex:1 }}>
                   <button style={{ width:'100%', padding:'10px', borderRadius:10, background:'linear-gradient(135deg,#1B6EF3,#00C2A8)', color:'white', border:'none', fontSize:14, fontWeight:700, cursor:'pointer' }}>
-                    {t('signup')}
-                  </button>
+                    {t('signup')                }
+              </button>
+  
+              {/* Notifications */}
+              <button title="Notifications" onClick={() => alert('No new medicine alerts.')}
+                style={{ position:'relative', width:36, height:36, borderRadius:8, border:"1px solid ${frosted?'var(--border)':'rgba(255,255,255,0.25)'}", background: frosted ? 'var(--bg-card)' : 'rgba(255,255,255,0.1)', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', color: frosted ? 'var(--text-secondary)' : 'white', transition:'all 0.2s' }}
+                onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.05)'}
+                onMouseLeave={e => e.currentTarget.style.transform = 'none'}>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                </svg>
+                <span style={{ position:'absolute', top:7, right:8, width:7, height:7, backgroundColor:'#ef4444', borderRadius:'50%', border:"1.5px solid ${frosted?'var(--bg-card)':'#1B6EF3'}"" }}></span>
+              </button>
                 </Link>
               </div>
             )}
             {isLoggedIn && (
               <button onClick={() => { setMenuOpen(false); logout(); }}
                 style={{ display:'block', width:'100%', textAlign:'left', padding:'10px 16px', fontSize:14, color:'#dc2626', background:'none', border:'none', cursor:'pointer' }}>
-                🚪 {t('logout')}
+                🚪 {t('logout')                }
+              </button>
+  
+              {/* Notifications */}
+              <button title="Notifications" onClick={() => alert('No new medicine alerts.')}
+                style={{ position:'relative', width:36, height:36, borderRadius:8, border:"1px solid ${frosted?'var(--border)':'rgba(255,255,255,0.25)'}", background: frosted ? 'var(--bg-card)' : 'rgba(255,255,255,0.1)', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', color: frosted ? 'var(--text-secondary)' : 'white', transition:'all 0.2s' }}
+                onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.05)'}
+                onMouseLeave={e => e.currentTarget.style.transform = 'none'}>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                </svg>
+                <span style={{ position:'absolute', top:7, right:8, width:7, height:7, backgroundColor:'#ef4444', borderRadius:'50%', border:"1.5px solid ${frosted?'var(--bg-card)':'#1B6EF3'}"" }}></span>
               </button>
             )}
           </div>

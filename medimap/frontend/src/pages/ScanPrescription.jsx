@@ -316,8 +316,14 @@ export default function ScanPrescription() {
                 )}
               </div>
             </div>
-          </>
-        )}
+          </>        )}
+
+        <div className="mt-8 p-4 rounded-xl text-sm" style={{ backgroundColor:'rgba(245,158,11,0.1)', border:'1px solid rgba(245,158,11,0.3)', color:'#b45309', display:'flex', gap:'12px', alignItems:'flex-start' }}>
+          <span className="text-xl">⚠️</span>
+          <div className="leading-relaxed font-medium">
+            <strong className="font-bold">Important Disclaimer:</strong> OCR technology may occasionally misread or incorrectly identify medicines from a prescription. Please confirm the prescription and medicine details with a qualified pharmacist or doctor before purchasing or taking any medicine. MediMap's OCR results are for assistance only and should not be considered 100% accurate or a substitute for professional medical advice.
+          </div>
+        </div>
       </div>
     </div>
   );
